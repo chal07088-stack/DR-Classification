@@ -28,3 +28,13 @@ The external comparison papers are stored in `docs/papers/comparators/`.
 
 Write daily work logs in `docs/experiment_logs/`.
 Use one Markdown file per day, for example `2026-09-02_setup.md`.
+
+## Experiment Results
+
+All raw experiment outputs should be recorded under `experimental_results/`:
+
+- `experimental_results/ours_proposed/`
+- `experimental_results/official_setting/`
+- `experimental_results/unified_setting/`
+
+Use `metrics/` for curated final tables and figures that are ready for reports or papers.

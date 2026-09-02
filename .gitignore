@@ -38,3 +38,12 @@ lightning_logs/
 Thumbs.db
 .vscode/
 .idea/
+
+# Heavy files inside experiment records
+experimental_results/**/checkpoints/
+experimental_results/**/*.pth
+experimental_results/**/*.pt
+experimental_results/**/*.ckpt
+experimental_results/**/*.pkl
+experimental_results/**/*.npy
+experimental_results/**/*.npz
