@@ -1,0 +1,40 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.pytest_cache/
+.ipynb_checkpoints/
+
+# Environments
+.env
+.venv/
+venv/
+env/
+
+# Local data and heavy experiment artifacts
+data/raw/**
+data/processed/**
+!data/raw/.gitkeep
+!data/processed/.gitkeep
+
+results/
+runs/
+outputs/
+checkpoints/
+*.ckpt
+*.pth
+*.pt
+*.pkl
+*.npy
+*.npz
+
+# Logs
+*.log
+wandb/
+lightning_logs/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
