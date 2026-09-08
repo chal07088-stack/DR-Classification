@@ -71,12 +71,65 @@ def clustered_rate_delta(target, reference, candidate, patient, repeats, seed=42
     }
 
 
+def shrinkage_design(y, fellow):
+    """Signed fellow-minus-target difference, adjusted by target-grade indicators."""
+    y, fellow = np.asarray(y), np.asarray(fellow)
+    return np.column_stack(
+        [np.ones(len(y)), fellow - y] + [(y == g).astype(float) for g in range(1, 5)]
+    )
+
+
+def shrinkage_permutation(y, fellow, qs, qf, repeats=1000, seed=42):
+    """Restricted null: fellow grades shuffled inside each target grade.
+
+    Severity boundaries are not exchangeable, so an unrestricted shuffle would not
+    be a defensible null. Holding every eye inside its own target grade asks the
+    narrower question the slope is meant to answer: does the fusion shift track the
+    fellow beyond what the target grade already explains?
+
+    Descriptive, with two limits worth stating in any write-up. It permutes eyes
+    rather than patients, so within-patient dependence is only partly represented,
+    and a small p-value rules out this null, not confounding in general.
+    """
+    y, fellow = np.asarray(y), np.asarray(fellow)
+    response = qf.sum(1) - qs.sum(1)
+    x = shrinkage_design(y, fellow)
+    definition = "fellow grade shuffled within target grade; descriptive, not causal"
+    if int(np.linalg.matrix_rank(x)) != x.shape[1] or repeats < 1:
+        return {
+            "observed_slope": None,
+            "p_permutation": None,
+            "repeats": 0,
+            "null_definition": definition,
+        }
+
+    def slope(design):
+        return float((np.linalg.pinv(design.T @ design) @ design.T @ response)[1])
+
+    observed = slope(x)
+    strata = [np.flatnonzero(y == grade) for grade in np.unique(y)]
+    rng = np.random.default_rng(seed)
+    draws = np.empty(repeats)
+    for r in range(repeats):
+        shuffled = fellow.copy()
+        for index in strata:
+            shuffled[index] = shuffled[rng.permutation(index)]
+        draws[r] = slope(shrinkage_design(y, shuffled))
+    extreme = int(np.sum(np.abs(draws) >= abs(observed)))
+    return {
+        "observed_slope": observed,
+        "null_mean": float(draws.mean()),
+        "null_sd": float(draws.std()),
+        "p_permutation": float((extreme + 1) / (repeats + 1)),
+        "repeats": int(repeats),
+        "null_definition": definition,
+    }
+
+
 def shrinkage_association(y, fellow, qs, qf, patient):
     """Target-grade adjusted association, explicitly not a causal shrinkage estimate."""
     y, fellow = np.asarray(y), np.asarray(fellow)
-    x = np.column_stack(
-        [np.ones(len(y)), fellow - y] + [(y == g).astype(float) for g in range(1, 5)]
-    )
+    x = shrinkage_design(y, fellow)
     response = qf.sum(1) - qs.sum(1)
     rank = int(np.linalg.matrix_rank(x))
     if rank != x.shape[1]:
@@ -236,7 +289,12 @@ def make_feasibility_report(cfg):
                     "grid_selected": int((grid["alpha"][:, b] > 0).sum()),
                 }
             )
-        mechanism[method] = shrinkage_association(y, s["fellow_y"], qs, qf, patient)
+        mechanism[method] = {
+            **shrinkage_association(y, s["fellow_y"], qs, qf, patient),
+            "permutation": shrinkage_permutation(
+                y, s["fellow_y"], qs, qf, repeats, cfg["evaluation"]["bootstrap_seed"]
+            ),
+        }
         for group, mask in masks.items():
             if not mask.any():
                 continue
