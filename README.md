@@ -3,7 +3,7 @@
 비대칭 환자에서 양안 융합이 어느 등급 경계를 해치는지 분석하고, 해당 경계만 단안 예측으로 되돌리는 연구 코드입니다.
 현재 버전은 **PHASE 1: EyePACS / ConvNeXt-S / seed 42 / patient-level 5-fold** 기준입니다.
 
-**저장소 재구성 및 검증 단계입니다. 새 본실험 결과는 아직 없습니다.**
+**PHASE 1 실행용 저장소입니다. 완료된 새 본실험 결과는 아직 없습니다.**
 이전 실행의 체크포인트는 head·전처리·학습 방식이 달라 이번 프로토콜에서 재사용하지 않습니다.
 
 ## 코드 위치
@@ -51,6 +51,7 @@ Git에는 상대 경로·환자 ID·라벨·fold가 담긴 [분할 CSV](data/spl
 
 ```sh
 uv run --locked drpair status
+uv run --locked python scripts/run_phase1.py
 uv run --locked drpair experts --job final_single
 uv run --locked drpair experts --all
 uv run --locked drpair gates
@@ -64,9 +65,15 @@ epoch 선택용 pilot을 학습한 뒤, 선택된 epoch 수로 해당 training �
 완료한 job은 같은 코드·config·manifest인 경우 체크포인트를 재사용합니다.
 중단된 epoch의 optimizer 자동 재개는 구현하지 않았으며, 미완료 job은 처음부터 다시 학습합니다.
 
+`scripts/run_phase1.py`는 experts -> Teacher A/B 및 gates -> report를 한 번 실행한 뒤 종료합니다.
+동일 run의 중복 실행은 lock으로 막고 오류가 나면 중단하여 `execution_status.json`에 기록합니다.
+Windows에서는 실행 중 시스템 자동 절전만 막으며 화면 켜짐은 강제하지 않습니다. 예약 작업은 아닙니다.
+
 설정은 [configs/phase1.toml](configs/phase1.toml)에 있습니다.
-단안 B8 / 양안 B4 / effective batch 32 / 512px / BF16 우선 / RGB를 사용합니다.
-실제 512px VRAM 여유와 학습 시간은 아직 측정하지 않았습니다.
+RTX 5070 Ti 사전 측정에 따라 단안 B16 x 2 / 양안 B8 x 4 / effective batch 32 /
+512px RGB / BF16 / channels-last / workers 6을 사용합니다. PyTorch allocator 상한은 13 GiB입니다.
+측정 원본은 `experimental_results/gpu_preflight/`에 있으며 성능 비교 결과가 아닙니다.
+학습 진행률과 VRAM peak는 각 job의 `logs/*.progress.json` 및 표준 출력에 기록합니다.
 
 ## 결과
 

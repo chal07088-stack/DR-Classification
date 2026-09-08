@@ -8,8 +8,17 @@ from drpair.evaluation.ordinal import check_probabilities
 
 def forward(model, batch, device, paired):
     target = batch["target"].to(device, non_blocking=True)
+    channels_last = any(
+        p.ndim == 4 and p.is_contiguous(memory_format=torch.channels_last)
+        for p in model.encoder.parameters()
+    )
+    if channels_last:
+        target = target.contiguous(memory_format=torch.channels_last)
     if paired:
-        return model(target, batch["fellow"].to(device, non_blocking=True))
+        fellow = batch["fellow"].to(device, non_blocking=True)
+        if channels_last:
+            fellow = fellow.contiguous(memory_format=torch.channels_last)
+        return model(target, fellow)
     return model(target)
 
 

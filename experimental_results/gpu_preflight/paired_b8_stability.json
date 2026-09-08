@@ -1,0 +1,22 @@
+{
+  "status": "passed",
+  "paired": true,
+  "batch": 8,
+  "accumulation": 4,
+  "effective_batch": 32,
+  "iterations": 100,
+  "warmup_iterations": 5,
+  "seconds_per_batch": 0.19784327157884898,
+  "target_eyes_per_second": 40.43604786838383,
+  "data_wait_seconds_per_batch": 0.00029044947366760186,
+  "peak_allocated_gib": 8.746957302093506,
+  "peak_reserved_gib": 8.92578125,
+  "free_gib_after": 5.6669921875,
+  "workers": 6,
+  "amp_dtype": "torch.bfloat16",
+  "channels_last": true,
+  "gpu": "NVIDIA GeForce RTX 5070 Ti",
+  "initial_loss": 0.580240786075592,
+  "final_loss": 0.42439666390419006,
+  "research_checkpoint_written": false
+}

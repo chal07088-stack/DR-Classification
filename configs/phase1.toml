@@ -20,8 +20,8 @@ fusion_dropout = 0.2
 [training]
 epochs = 25
 pilot_fraction = 0.1
-single_batch = 8
-paired_batch = 4
+single_batch = 16
+paired_batch = 8
 effective_batch = 32
 backbone_lr = 0.00003
 head_lr = 0.0001
@@ -38,6 +38,9 @@ prefetch_factor = 2
 tf32 = true
 cudnn_benchmark = false
 deterministic = true
+channels_last = true
+memory_limit_gib = 13.0
+cpu_threads = 4
 
 [augmentation]
 horizontal_flip = 0.5

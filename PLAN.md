@@ -17,7 +17,9 @@ ConvNeXt-S, ordered-CORAL, seed 42, five patient folds.
    clustered bootstrap intervals, and local teacher versus joint deployed utility.
 8. Produce the PHASE 1 report and stop for review.
 
-Current: source/data/environment reconstruction. No new research training launched.
+Current: source/data/environment reconstruction completed; GPU preflight passed.
+The user authorized a one-shot PHASE 1 launch on 2026-09-08. Runtime state is stored
+in the run's execution_status.json; this plan is not a completion claim.
 G_teacher_b is the proposed arm fixed before test inspection.
 
 ## PHASE 2 (After Review)

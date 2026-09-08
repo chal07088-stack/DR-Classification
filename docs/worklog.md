@@ -26,3 +26,29 @@ in addition to 12 retained experts and is documented before any future launch.
 
 Validation records are in `experimental_results/repository_validation/`.
 User explicitly requested no experiment execution; no real EyePACS training started.
+
+## 2026-09-08: Authorized GPU launch preparation
+
+The user subsequently authorized PHASE 1 training and asked to stop any previous
+training. Windows process inspection found no existing Python training process.
+The active implementation remains ConvNeXt-S, seed 42, five patient folds only.
+
+Real 512px RGB probes covered single batch 8/16 and paired batch 8, followed by
+100 consecutive forward/backward iterations for the selected single/paired batches.
+The probes include AdamW state, EMA updates, EMA evaluation, and CPU snapshot;
+their temporary learned weights are discarded and never reused for PHASE 1.
+Single B16: peak allocated 8.769 GiB, about 79.7 target eyes/s.
+Paired B8: peak allocated 8.747 GiB, about 40.4 target eyes/s.
+These are short hardware measurements, not performance results or full-run ETAs.
+
+Selected B16 x 2 / B8 x 4 with effective batch 32, BF16, channels-last, six
+DataLoader workers, and a 13 GiB PyTorch allocator limit. Deterministic settings,
+seeds, learning rates, model/teacher definitions, and split assignments are unchanged.
+An explicit CUDA device-index issue found in the first preflight was fixed and
+covered with a regression test. All 13 CPU tests pass.
+
+Added a one-shot PHASE 1 runner with a duplicate-run lock and failure status,
+per-minute in-job progress/VRAM logs, and Windows system-sleep prevention only
+for the lifetime of this process. No scheduled automation or proactive messages
+were created. Training errors stop the queue rather than silently changing batches.
+The expert -> Teacher A/B/gate -> report queue ends after PHASE 1.

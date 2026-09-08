@@ -18,6 +18,9 @@ experimental_results/**/checkpoints/
 experimental_results/**/features/
 experimental_results/**/teachers/
 experimental_results/**/gates/
+experimental_results/**/RUNNING.lock
+experimental_results/**/*.stdout.log
+experimental_results/**/*.stderr.log
 data/eyepacs/
 .dvc/cache/
 .dvc/tmp/

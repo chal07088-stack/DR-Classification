@@ -72,6 +72,9 @@ def fit(
     updates = 0
     for epoch in range(1, epochs + 1):
         start = time.perf_counter()
+        last_progress = start
+        if device.type == "cuda":
+            torch.cuda.reset_peak_memory_stats()
         model.train()
         optimizer.zero_grad(set_to_none=True)
         total_loss, seen = 0.0, 0
@@ -105,6 +108,36 @@ def fit(
                         ema.update(model)
                 optimizer.zero_grad(set_to_none=True)
                 window_samples = 0
+            now = time.perf_counter()
+            if step == 1 or step == len(train_loader) or now - last_progress >= 60:
+                progress = {
+                    "job": checkpoint.stem,
+                    "stage": "training",
+                    "epoch": epoch,
+                    "epochs": epochs,
+                    "step": step,
+                    "steps": len(train_loader),
+                    "samples": seen,
+                    "updates": updates,
+                    "loss": total_loss / seen,
+                    "elapsed_seconds": now - start,
+                    "peak_allocated_gib": (
+                        torch.cuda.max_memory_allocated() / 1024**3
+                        if device.type == "cuda"
+                        else 0.0
+                    ),
+                    "peak_reserved_gib": (
+                        torch.cuda.max_memory_reserved() / 1024**3 if device.type == "cuda" else 0.0
+                    ),
+                }
+                save_json(Path(log).with_suffix(".progress.json"), progress)
+                print(
+                    f"[{checkpoint.stem}] epoch {epoch}/{epochs} "
+                    f"step {step}/{len(train_loader)} loss={progress['loss']:.5f} "
+                    f"peak={progress['peak_allocated_gib']:.2f} GiB",
+                    flush=True,
+                )
+                last_progress = now
         record = {
             "epoch": epoch,
             "loss": total_loss / seen,
@@ -114,6 +147,7 @@ def fit(
         }
         with ema.applied(model) if ema else nullcontext():
             if validation_loader is not None:
+                print(f"[{checkpoint.stem}] inner validation epoch {epoch}", flush=True)
                 q = predict(model, validation_loader, device, dtype, paired)
                 y = np.array([r["label"] for r in validation_loader.dataset.rows])
                 metrics = grade_metrics(y, q)
@@ -124,6 +158,10 @@ def fit(
                     best_state = cpu_state(model)
             elif epoch == epochs:
                 best_state = cpu_state(model)
+        record["total_epoch_seconds"] = time.perf_counter() - start
+        if device.type == "cuda":
+            record["peak_allocated_gib"] = torch.cuda.max_memory_allocated() / 1024**3
+            record["peak_reserved_gib"] = torch.cuda.max_memory_reserved() / 1024**3
         append_jsonl(log, record)
         print(
             f"[{checkpoint.stem}] epoch {epoch}/{epochs} loss={record['loss']:.5f} "

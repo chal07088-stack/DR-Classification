@@ -37,6 +37,8 @@ def build_expert(cfg, paired):
         num_classes=0,
         global_pool="avg",
     )
+    if cfg.get("runtime", {}).get("channels_last", False):
+        encoder.to(memory_format=torch.channels_last)
     if paired:
         return PairedOrdinal(encoder, cfg["model"]["fusion_dropout"])
     return SingleOrdinal(encoder)

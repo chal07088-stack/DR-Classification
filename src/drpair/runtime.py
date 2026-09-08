@@ -68,6 +68,7 @@ def seed_worker(_worker_id):
 
 def setup_device(cfg, cpu=False):
     runtime = cfg["runtime"]
+    torch.set_num_threads(runtime.get("cpu_threads", 4))
     seed_everything(cfg["experiment"]["seed"], runtime["deterministic"])
     if not cpu and not torch.cuda.is_available():
         raise RuntimeError("CUDA unavailable. CPU is allowed only for explicit verification.")
@@ -77,6 +78,14 @@ def setup_device(cfg, cpu=False):
     torch.backends.cuda.matmul.allow_tf32 = runtime["tf32"]
     dtype = None
     if device.type == "cuda":
+        limit = runtime.get("memory_limit_gib")
+        if limit is not None:
+            total = torch.cuda.get_device_properties(device).total_memory
+            if not 0 < limit * 1024**3 < total:
+                raise ValueError("memory_limit_gib must be positive and below total VRAM")
+            torch.cuda.set_per_process_memory_fraction(
+                limit * 1024**3 / total, torch.cuda.current_device()
+            )
         dtype = torch.bfloat16 if torch.cuda.is_bf16_supported() else torch.float16
     return device, dtype
 
