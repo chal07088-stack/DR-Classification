@@ -39,5 +39,14 @@
   "complete_pairs": true,
   "folds": 5,
   "seed": 42,
-  "image_content_duplicates_checked": false
+  "image_content_duplicates_checked": true,
+  "image_content_audit": {
+    "source": "experimental_results/repository_validation/data_content_audit.json",
+    "images": 88702,
+    "unique_content_hashes": 88702,
+    "byte_duplicate_groups": 0,
+    "cross_split_duplicate_groups": 0,
+    "conflicting_label_groups": 0,
+    "near_duplicate_images_checked": false
+  }
 }

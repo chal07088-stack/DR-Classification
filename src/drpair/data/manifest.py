@@ -1,5 +1,7 @@
 import csv
+import json
 import re
+import warnings
 from collections import Counter, defaultdict
 from pathlib import Path
 
@@ -77,6 +79,32 @@ def validate_manifest(rows, root=None, official=False):
     }
 
 
+def content_audit_status(repo_root=None):
+    """Reflect the committed scripts/audit_data.py result instead of hardcoding False."""
+    root = Path(repo_root) if repo_root else Path(__file__).resolve().parents[3]
+    path = root / "experimental_results" / "repository_validation" / "data_content_audit.json"
+    if not path.is_file():
+        return {"image_content_duplicates_checked": False}
+    audit = json.loads(path.read_text(encoding="utf-8"))
+    return {
+        "image_content_duplicates_checked": True,
+        "image_content_audit": {
+            "source": path.relative_to(root).as_posix(),
+            **{
+                key: audit.get(key)
+                for key in (
+                    "images",
+                    "unique_content_hashes",
+                    "byte_duplicate_groups",
+                    "cross_split_duplicate_groups",
+                    "conflicting_label_groups",
+                    "near_duplicate_images_checked",
+                )
+            },
+        },
+    }
+
+
 def patient_folds(rows, folds=5, seed=42):
     patients = defaultdict(list)
     for row in rows:
@@ -89,6 +117,12 @@ def patient_folds(rows, folds=5, seed=42):
     counts = Counter(strata)
     strata = np.array([x if counts[x] >= folds else -1 for x in strata])
     if np.any(np.array(list(Counter(strata).values())) < folds):
+        warnings.warn(
+            f"No grade stratum reaches {folds} patients; folds fall back to unstratified "
+            f"assignment over {len(ids)} patients.",
+            RuntimeWarning,
+            stacklevel=2,
+        )
         strata[:] = 0
     assignment = {}
     for fold, (_, held) in enumerate(
@@ -170,7 +204,7 @@ def prepare(root, output, fold_output, audit_output, folds=5, seed=42, official=
             "complete_pairs": True,
             "folds": folds,
             "seed": seed,
-            "image_content_duplicates_checked": False,
+            **content_audit_status(),
         },
     )
     return summary

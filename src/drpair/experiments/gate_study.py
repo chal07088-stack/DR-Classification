@@ -51,6 +51,7 @@ def run_gate_study(cfg):
     run = run_directory(cfg)
     # All supervised gate fitting uses untouched official validation predictions.
     # Train expert-OOF dumps are preserved for independent teacher diagnostics.
+    prepared = {}
     for subset in ("oof", "val"):
         s_path = (
             run / "predictions" / ("oof_single.npz" if subset == "oof" else "final_single_val.npz")
@@ -92,6 +93,12 @@ def run_gate_study(cfg):
                 }
             )
         write_csv(run / "metrics" / f"teacher_a_vs_b_{subset}.csv", comparison)
+        prepared[subset] = (s, f, teachers, features, names)
+    # Gate fitting reads the official validation dump by name. Inheriting whatever
+    # the loop happened to leave behind would silently refit gates on train OOF.
+    s, f, teachers, features, names = prepared["val"]
+    if not np.all(s["split"] == "val"):
+        raise ValueError("Gate fitting source is not the official validation split")
     validation_rows = [
         {"patient": str(p), "side": str(side)} for p, side in zip(s["patient"], s["side"])
     ]
