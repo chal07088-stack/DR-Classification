@@ -1,0 +1,55 @@
+project_name: kimeyepacs_boundary_fusion
+data_root: C:/Users/use/Desktop/pair/eyepacs_official_split
+out_root: experimental_results/ours_proposed
+
+model:
+  arch: convnext_small.fb_in22k_ft_in1k
+  pretrained: true
+  image_size: 512
+  color_mode: grayscale_reference
+
+runtime:
+  precision: bf16
+  tf32: true
+  cudnn_benchmark: true
+  num_workers: 2
+  pin_memory: true
+  persistent_workers: true
+  prefetch_factor: 2
+  grad_clip: 1.0
+  zero_grad_set_to_none: true
+
+optimization:
+  effective_batch: 32
+  single_batch: 8
+  single_grad_accum: 4
+  paired_batch: 4
+  paired_grad_accum: 8
+  gate_batch: 512
+  single_epochs: 25
+  paired_epochs: 50
+  gate_epochs: 40
+  min_epochs: 15
+  patience: 15
+  min_save_epoch: 10
+  backbone_lr: 0.00003
+  head_lr: 0.0001
+  paired_head_lr: 0.001
+  weight_decay: 0.0001
+  scheduler: cosine
+  ema_decay: 0.999
+  boundary_pos_weight: true
+  max_pos_weight: 20.0
+
+augmentation:
+  horizontal_flip: true
+
+seeds:
+  train: [42, 123, 128]
+  phase1: [42]
+
+gate:
+  tau: 1.0
+  gamma: 1.0
+  lambda_gate: 1.0
+  lambda_mono: 1.0
