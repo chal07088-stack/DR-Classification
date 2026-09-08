@@ -1,0 +1,62 @@
+[experiment]
+phase = 1
+seed = 42
+folds = 5
+run_name = "phase1_convnext_s_seed42_pdfv3"
+
+[data]
+root = "data/eyepacs"
+manifest = "data/splits/eyepacs.csv"
+fold_manifest = "data/splits/folds_seed42.csv"
+results = "experimental_results"
+
+[model]
+arch = "convnext_small.fb_in22k_ft_in1k"
+pretrained = true
+head = "ordered_coral"
+image_size = 512
+fusion_dropout = 0.2
+
+[training]
+epochs = 25
+pilot_fraction = 0.1
+single_batch = 8
+paired_batch = 4
+effective_batch = 32
+backbone_lr = 0.00003
+head_lr = 0.0001
+weight_decay = 0.0001
+ema_decay = 0.999
+grad_clip = 1.0
+
+[runtime]
+precision = "bf16"
+workers = 6
+pin_memory = true
+persistent_workers = true
+prefetch_factor = 2
+tf32 = true
+cudnn_benchmark = false
+deterministic = true
+
+[augmentation]
+horizontal_flip = 0.5
+rotation_degrees = 15.0
+brightness = 0.1
+contrast = 0.1
+
+[gate]
+crossfit_folds = 5
+epochs = 40
+batch = 512
+lr = 0.001
+weight_decay = 0.001
+hidden = 16
+intervention_penalty = 0.01
+rare_boundary_prior = 20.0
+teacher_temperature = 1.0
+
+[evaluation]
+threshold = 0.5
+bootstrap_repeats = 1000
+bootstrap_seed = 42

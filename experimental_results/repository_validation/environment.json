@@ -1,0 +1,19 @@
+{
+  "python": "3.12.14",
+  "platform": "Windows-11-10.0.26200-SP0",
+  "packages": {
+    "torch": "2.11.0+cu128",
+    "torchvision": "0.26.0+cu128",
+    "timm": "1.0.28",
+    "numpy": "2.2.6",
+    "scipy": "1.15.3",
+    "scikit-learn": "1.7.2",
+    "pillow": "12.2.0",
+    "dvc": "3.67.1"
+  },
+  "cuda_available": true,
+  "gpu": "NVIDIA GeForce RTX 5070 Ti",
+  "bf16_supported": true,
+  "experiment_started": false,
+  "verification": "Imports and capability queries only; no image-model execution"
+}
