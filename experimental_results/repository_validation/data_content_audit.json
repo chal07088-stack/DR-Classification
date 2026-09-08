@@ -7,5 +7,6 @@
   "cross_split_duplicate_groups": 0,
   "conflicting_label_groups": 0,
   "near_duplicate_images_checked": false,
-  "dvc_tree_md5": "b0b8205bf1998d4c4e5b1b64ca51f59d.dir"
+  "dvc_tree_md5": "b0b8205bf1998d4c4e5b1b64ca51f59d.dir",
+  "manifest_sha256": "045b3486096f3a4e936b7c928f78c684084860cc8f50b0a306a5e58e2ada9563"
 }

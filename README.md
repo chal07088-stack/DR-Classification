@@ -60,9 +60,13 @@ uv run --locked drpair report
 
 `--all`은 final 2개와 OOF 10개를 처리합니다. 각 expert는 자신의 training 환자 안에서
 epoch 선택용 pilot을 학습한 뒤, 선택된 epoch 수로 해당 training 환자 전체를 새로 학습합니다.
-따라서 **최종 expert 12개 + 선택용 pilot 12개**이며, 가벼운 한 번의 실행이 아닙니다.
+따라서 **최종 expert 12개 + 선택 학습 12개**이며, 가벼운 한 번의 실행이 아닙니다.
+`inner_validation_fraction=0.1`은 내부 검증 비율입니다. 선택 학습에는 약 90%를 사용합니다.
+먼저 final 단안·양안 선택 학습을 완료해 경계 진단을 만들고, 같은 체크포인트를 재사용하여 나머지를 진행합니다.
+두 모델 모두 B3 양성을 전혀 예측하지 못하면 `needs_review`로 멈춥니다. loss와 threshold는 자동 조정하지 않습니다.
 공식 val/test나 OOF holdout 라벨로 expert의 epoch를 고르지 않습니다.
 완료한 job은 같은 코드·config·manifest인 경우 체크포인트를 재사용합니다.
+체크포인트 파일 자체에도 학습/검증 행 구성·config·코드 지문을 저장하고 다르면 로딩을 거부합니다.
 중단된 epoch의 optimizer 자동 재개는 구현하지 않았으며, 미완료 job은 처음부터 다시 학습합니다.
 
 `scripts/run_phase1.py`는 experts -> Teacher A/B 및 gates -> report를 한 번 실행한 뒤 종료합니다.
@@ -74,6 +78,9 @@ RTX 5070 Ti 사전 측정에 따라 단안 B16 x 2 / 양안 B8 x 4 / effective b
 512px RGB / BF16 / channels-last / workers 6을 사용합니다. PyTorch allocator 상한은 13 GiB입니다.
 측정 원본은 `experimental_results/gpu_preflight/`에 있으며 성능 비교 결과가 아닙니다.
 학습 진행률과 VRAM peak는 각 job의 `logs/*.progress.json` 및 표준 출력에 기록합니다.
+각 선택 epoch의 B0-B3 사건 수·recall·AUC/AP는 `logs/*.boundaries.json`과 JSONL에 기록합니다.
+초기 개입 진단은 `diagnostics/initial_expert_check.json` 및 관련 CSV에서 확인합니다.
+실제 epoch의 처리량·DataLoader 대기·validation 시간도 기록하므로 짧은 preflight 속도를 ETA로 단정하지 않습니다.
 
 ## 결과
 

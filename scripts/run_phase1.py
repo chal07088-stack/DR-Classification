@@ -8,6 +8,7 @@ import traceback
 from datetime import UTC, datetime
 from pathlib import Path
 
+from drpair.experiments.precheck import BoundaryReviewRequired
 from drpair.runtime import load_config, run_directory, save_json
 
 
@@ -52,6 +53,10 @@ def main():
         update("report")
         report = make_report(cfg)
         update("finished", "complete", report=str(report))
+    except BoundaryReviewRequired as exc:
+        update("expert_boundary_precheck", "needs_review", error=str(exc))
+        print(str(exc), flush=True)
+        return 2
     except BaseException as exc:
         update(status.get("stage", "startup"), "failed", error=repr(exc))
         traceback.print_exc(file=sys.stderr)
@@ -63,4 +68,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

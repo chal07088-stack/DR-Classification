@@ -15,6 +15,10 @@ Head는 CORAL의 shared-score 구조에 증가하는 cutpoint를 명시적으로
 공식 CORAL 구현을 그대로 재현했다고 표기하지 않습니다.
 [CORAL 원 논문](https://arxiv.org/abs/1901.07884)의 구조를 참고했습니다.
 단안과 양안 모두 `q_0 >= q_1 >= q_2 >= q_3`를 만족합니다.
+`logit(q_b) = score(x) - cutpoint_b`이므로 expert 내부의 경계별 순위는 공통 score에 결합됩니다.
+이는 비례오즈 형태의 제약이며, 독립적인 boundary representation을 학습한다는 뜻이 아닙니다.
+PHASE 1에서는 동일 head 아래 gate의 효과를 분리하는 기준 모델로 사용합니다.
+더 유연한 ordinal head에서도 같은 효과가 유지되는지는 후속 검증 대상이며 현재 결과로 가정하지 않습니다.
 서로 다른 alpha로 섞은 뒤에는 이 성질이 자동 보장되지 않으므로 PAVA를 기본 적용합니다.
 누적 minimum은 낮추는 방향으로 치우칠 수 있어 Euclidean isotonic projection을 사용합니다.
 
@@ -73,6 +77,27 @@ Calibration/threshold 민감도 분석은 PHASE 2에서 사전에 정의할 추�
 환자 단위 paired bootstrap은 같은 환자의 두 눈을 함께 재표집합니다.
 BH/Holm은 boundary slope 4개와 B0 대비 interaction 3개를 각각 별도 family로 보정합니다.
 이는 descriptive regression이고 인과성·novelty를 자동 입증하지 않습니다. 조정 전 p와 조정값을 함께 공개합니다.
+
+## 초기 경계 진단과 계산량
+
+`inner_validation_fraction=0.1`은 각 expert 학습 집합의 약 10%를 내부 검증으로 남긴다는 뜻입니다.
+나머지 약 90%로 선택 학습하므로 저비용 10% subsample 실험이 아닙니다.
+최대 25 epoch의 선택 학습 12회와 선택된 epoch 수만큼의 전체 refit 12회는 그대로 필요합니다.
+리뷰의 약 85 GPU-hour는 refit도 25 epoch라고 가정한 처리량 기반 근사이며,
+validation/추론/I/O 시간을 포함한 확정 ETA나 엄밀한 하한은 아닙니다.
+
+두 final expert의 선택 학습을 먼저 완료하고, 그때의 내부 검증 예측에서 boundary별
+정답 수, 예측 양성 수, TP/recall, ROC-AUC/AP, local U_b 및 16-mask 개입 횟수를 기록합니다.
+기존 선택 checkpoint를 재사용하므로 추가 expert 학습은 없습니다. 모델 선택에 쓴 내부 검증이므로
+이 진단은 OOF 성능 증거나 논문 최종 검정이 아니라 계산 예산 보호용입니다.
+
+정답 B3 양성이 있는데 두 expert 모두 0.5에서 B3 양성을 한 건도 예측하지 못하면
+`needs_review`로 중단하고 나머지 refit/OOF 비용을 쓰지 않습니다. 초기 1 epoch만으로 중단하지 않습니다.
+다른 경계의 개입 횟수가 적다는 이유만으로 가설이 틀렸다고 결론내리지 않습니다.
+기본 unweighted BCE와 threshold 0.5는 유지하며, 가중치/threshold를 자동으로 바꾸지 않습니다.
+매 선택 epoch의 경계 진단은 추가 이미지 추론 없이 이미 계산한 validation 확률로 저장합니다.
+진짜 train OOF가 완성되면 `oof_boundary_opportunities.csv`에서 같은 진단을 다시 수행합니다.
+Oracle mask 선택 횟수는 tie-breaking에 영향을 받으며 boundary의 인과적 기여도는 아닙니다.
 
 ## 구현 수정 사항
 

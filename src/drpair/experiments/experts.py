@@ -16,6 +16,8 @@ from drpair.runtime import run_directory, save_json, seed_everything, setup_devi
 from drpair.training.engine import fit
 from drpair.training.predictions import predict, save_predictions
 
+from .precheck import check_initial_experts
+
 
 def expert_jobs(folds=5):
     return ["final_single", "final_paired"] + [
@@ -23,24 +25,33 @@ def expert_jobs(folds=5):
     ]
 
 
-def run_experts(cfg, jobs):
+def run_experts(cfg, jobs, selection_only=False):
     device, dtype = setup_device(cfg)
     rows = read_manifest(cfg["data"]["manifest"])
     validate_manifest(rows, cfg["data"]["root"], official=True)
     train = [r for r in rows if r["split"] == "train"]
     folds = read_fold_assignment(cfg["data"]["fold_manifest"], train, "train")
     run = run_directory(cfg)
-    save_json(
-        run / "expert_schedule.json",
-        {
-            "jobs": expert_jobs(),
-            "inner_selection": "patient-disjoint subset of each job's training patients",
-            "full_refit": True,
-            "test_used_for_selection": False,
-            "retained_experts": 12,
-            "selection_pilots": 12,
-        },
-    )
+    if not selection_only:
+        save_json(
+            run / "expert_schedule.json",
+            {
+                "jobs": expert_jobs(),
+                "inner_selection": "patient-disjoint subset of each job's training patients",
+                "full_refit": True,
+                "test_used_for_selection": False,
+                "retained_experts": 12,
+                "selection_pilots": 12,
+                "inner_validation_fraction": cfg["training"]["inner_validation_fraction"],
+                "selection_training_fraction_approx": 1
+                - cfg["training"]["inner_validation_fraction"],
+                "initial_boundary_check_before_refits_and_oof": True,
+            },
+        )
+    if not selection_only and {"final_single", "final_paired"}.issubset(jobs):
+        # Reuse these two completed selections below; this adds no extra expert fits.
+        run_experts(cfg, ["final_single", "final_paired"], selection_only=True)
+        check_initial_experts(cfg)
     for job in jobs:
         if job not in expert_jobs():
             raise ValueError(f"Unknown job: {job}")
@@ -50,7 +61,9 @@ def run_experts(cfg, jobs):
         held_rows = None if fold is None else [r for r, f in zip(train, folds) if f == fold]
         seed = cfg["experiment"]["seed"]
         # Model selection stays inside the job's training patients, followed by a full refit.
-        inner = patient_folds(fit_rows, max(2, round(1 / cfg["training"]["pilot_fraction"])), seed)
+        inner = patient_folds(
+            fit_rows, max(2, round(1 / cfg["training"]["inner_validation_fraction"])), seed
+        )
         pilot_train = [r for r, f in zip(fit_rows, inner) if f != 0]
         pilot_val = [r for r, f in zip(fit_rows, inner) if f == 0]
         if held_rows and ({r["patient"] for r in fit_rows} & {r["patient"] for r in held_rows}):
@@ -80,9 +93,16 @@ def run_experts(cfg, jobs):
             run / "logs" / f"{job}_selection.jsonl",
             validation_loader=val_loader,
         )
+        if selection_only:
+            q = predict(model, val_loader, device, dtype, paired)
+            save_predictions(
+                run / "predictions" / f"{job}_selection_holdout.npz", pilot_val, q, seed=seed
+            )
         del model, train_loader, val_loader
         gc.collect()
         torch.cuda.empty_cache()
+        if selection_only:
+            continue
         seed_everything(seed, cfg["runtime"]["deterministic"])
         model = build_expert(cfg, paired)
         train_loader = make_loader(fit_rows, cfg, paired, True, seed)
@@ -118,7 +138,8 @@ def run_experts(cfg, jobs):
         del model, train_loader
         gc.collect()
         torch.cuda.empty_cache()
-    aggregate_oof(cfg)
+    if not selection_only:
+        aggregate_oof(cfg)
 
 
 def aggregate_oof(cfg):

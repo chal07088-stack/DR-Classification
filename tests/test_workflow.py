@@ -48,6 +48,10 @@ def test_cached_prediction_workflow_cpu_only(tmp_path):
     report = make_report(cfg)
     assert report.exists()
     assert (run / "metrics" / "local_vs_joint.csv").exists()
+    assert (run / "metrics" / "oof_boundary_opportunities.csv").exists()
+    with np.load(run / "features" / "gate_crossfit_identity.npz") as identity:
+        patients = identity["rows"][:, 0].astype(int)
+        assert ((patients >= 100) & (patients < 200)).all()
     assert (run / "figures" / "qwk_by_gap.png").exists()
     with np.load(run / "teachers" / "val.npz") as teachers:
         assert "b_utility" in teachers.files

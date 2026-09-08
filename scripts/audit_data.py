@@ -9,7 +9,7 @@ from pathlib import Path
 import yaml
 
 from drpair.data.manifest import read_manifest, write_csv
-from drpair.runtime import save_json
+from drpair.runtime import file_hash, save_json
 
 
 def main():
@@ -38,6 +38,9 @@ def main():
     oid = metadata["outs"][0]["md5"]
     tree = json.loads((args.store / "files" / "md5" / oid[:2] / oid[2:]).read_text())
     by_path = {r["path"]: r for r in rows}
+    indexed_paths = [item["relpath"].replace("\\", "/") for item in tree]
+    if len(indexed_paths) != len(rows) or set(indexed_paths) != set(by_path):
+        raise ValueError("DVC content index does not cover the manifest exactly")
     groups = defaultdict(list)
     for item in tree:
         groups[item["md5"]].append(by_path[item["relpath"].replace("\\", "/")])
@@ -66,9 +69,21 @@ def main():
         "conflicting_label_groups": sum(len({r["label"] for r in g}) > 1 for g in duplicates),
         "near_duplicate_images_checked": False,
         "dvc_tree_md5": oid,
+        "manifest_sha256": file_hash(repo / "data" / "splits" / "eyepacs.csv"),
     }
     out = repo / "experimental_results" / "repository_validation"
     save_json(out / "data_content_audit.json", summary)
+    audit_path = repo / "data" / "splits" / "audit.json"
+    if audit_path.exists():
+        audit = json.loads(audit_path.read_text(encoding="utf-8"))
+        audit.update(
+            image_content_duplicates_checked=True,
+            content_audit_report="experimental_results/repository_validation/data_content_audit.json",
+            content_audit_manifest_sha256=summary["manifest_sha256"],
+            content_audit_dvc_tree_md5=oid,
+            near_duplicate_images_checked=False,
+        )
+        save_json(audit_path, audit)
     if duplicate_rows:
         write_csv(out / "exact_duplicates.csv", duplicate_rows)
     print(json.dumps(summary, indent=2))

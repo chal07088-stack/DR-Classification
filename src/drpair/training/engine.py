@@ -1,3 +1,5 @@
+import hashlib
+import json
 import math
 import time
 from contextlib import nullcontext
@@ -7,12 +9,36 @@ import numpy as np
 import torch
 from torch.nn import functional as F
 
-from drpair.evaluation.metrics import grade_metrics
+from drpair.evaluation.metrics import expert_boundary_diagnostics, grade_metrics
 from drpair.models.ordinal import ordinal_targets
-from drpair.runtime import append_jsonl, save_json
+from drpair.runtime import append_jsonl, experiment_fingerprint, save_json
 
 from .ema import EMA, cpu_state
 from .predictions import forward, predict
+
+
+def checkpoint_identity(cfg, model, train_loader, validation_loader, paired, epochs):
+    def loader_identity(loader):
+        if loader is None:
+            return None
+        rows = getattr(loader.dataset, "rows", None)
+        return {
+            "dataset_class": type(loader.dataset).__qualname__,
+            "samples": len(loader.dataset),
+            "batch": loader.batch_size,
+            "rows_sha256": hashlib.sha256(json.dumps(rows, sort_keys=True).encode()).hexdigest()
+            if rows is not None
+            else None,
+        }
+
+    return {
+        **experiment_fingerprint(cfg),
+        "model_class": type(model).__qualname__,
+        "paired": paired,
+        "maximum_epochs": epochs,
+        "training": loader_identity(train_loader),
+        "validation": loader_identity(validation_loader),
+    }
 
 
 def fit(
@@ -33,11 +59,15 @@ def fit(
     """
     checkpoint = Path(checkpoint)
     model.to(device)
+    opt_cfg = cfg["training"]
+    epochs = opt_cfg["epochs"] if epochs is None else epochs
+    identity = checkpoint_identity(cfg, model, train_loader, validation_loader, paired, epochs)
     if checkpoint.exists():
         saved = torch.load(checkpoint, map_location="cpu", weights_only=True)
+        if not saved.get("complete") or saved.get("fingerprint") != identity:
+            raise ValueError("Checkpoint fingerprint mismatch or incomplete/legacy checkpoint")
         model.load_state_dict(saved["model"])
         return model, saved["epoch"]
-    opt_cfg = cfg["training"]
     save_json(
         checkpoint.with_suffix(".json"),
         {
@@ -50,7 +80,6 @@ def fit(
             "batch_unit": "target eyes (paired jobs also load their fellow eyes)",
         },
     )
-    epochs = epochs or opt_cfg["epochs"]
     encoder_params = list(model.encoder.parameters())
     encoder_ids = {id(p) for p in encoder_params}
     head_params = [p for p in model.parameters() if id(p) not in encoder_ids]
@@ -78,8 +107,10 @@ def fit(
         model.train()
         optimizer.zero_grad(set_to_none=True)
         total_loss, seen = 0.0, 0
+        data_wait_seconds, last_batch_end = 0.0, start
         window_samples = 0
         for step, batch in enumerate(train_loader, 1):
+            data_wait_seconds += time.perf_counter() - last_batch_end
             labels = batch["label"].to(device)
             n = len(labels)
             with torch.autocast(device_type=device.type, dtype=dtype, enabled=dtype is not None):
@@ -138,19 +169,41 @@ def fit(
                     flush=True,
                 )
                 last_progress = now
+            last_batch_end = time.perf_counter()
         record = {
             "epoch": epoch,
             "loss": total_loss / seen,
             "samples": seen,
             "updates": updates,
             "seconds": time.perf_counter() - start,
+            "data_wait_seconds": data_wait_seconds,
         }
+        record["target_eyes_per_second"] = seen / record["seconds"]
         with ema.applied(model) if ema else nullcontext():
             if validation_loader is not None:
                 print(f"[{checkpoint.stem}] inner validation epoch {epoch}", flush=True)
                 q = predict(model, validation_loader, device, dtype, paired)
                 y = np.array([r["label"] for r in validation_loader.dataset.rows])
-                metrics = grade_metrics(y, q)
+                threshold = cfg.get("evaluation", {}).get("threshold", 0.5)
+                metrics = grade_metrics(y, q, threshold)
+                patient = [r["patient"] for r in validation_loader.dataset.rows]
+                boundaries = expert_boundary_diagnostics(y, q, threshold, patient)
+                record["boundary_diagnostics"] = boundaries
+                save_json(
+                    Path(log).with_suffix(".boundaries.json"),
+                    {
+                        "epoch": epoch,
+                        "source": "inner_selection_validation",
+                        "boundaries": boundaries,
+                    },
+                )
+                top = boundaries[3]
+                print(
+                    f"[{checkpoint.stem}] B3 true={top['positive']} "
+                    f"predicted={top['predicted_positive']} TP={top['tp']} "
+                    f"recall={top['recall']} AUC={top['auc']}",
+                    flush=True,
+                )
                 score = metrics["qwk"]
                 record["inner_validation_qwk"] = score
                 if score is not None and score > best_score:
@@ -159,6 +212,9 @@ def fit(
             elif epoch == epochs:
                 best_state = cpu_state(model)
         record["total_epoch_seconds"] = time.perf_counter() - start
+        record["validation_and_snapshot_seconds"] = (
+            record["total_epoch_seconds"] - record["seconds"]
+        )
         if device.type == "cuda":
             record["peak_allocated_gib"] = torch.cuda.max_memory_allocated() / 1024**3
             record["peak_reserved_gib"] = torch.cuda.max_memory_reserved() / 1024**3
@@ -179,6 +235,8 @@ def fit(
             "weights": "ema" if ema else "raw",
             "paired": paired,
             "selection": "inner_validation_qwk" if validation_loader else "fixed_epoch_refit",
+            "complete": True,
+            "fingerprint": identity,
         },
         temporary,
     )

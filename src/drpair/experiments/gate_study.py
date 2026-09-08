@@ -10,6 +10,7 @@ from drpair.teachers import counterfactual_teacher, loss_guided_teacher
 from drpair.training.predictions import load_pair
 
 from .arms import ARMS, PROPOSED
+from .precheck import boundary_opportunities
 
 LEARNED = ["D_global_learned", "E_boundary_task", "F_teacher_a", "G_teacher_b", "global_asymmetry"]
 
@@ -92,6 +93,15 @@ def run_gate_study(cfg):
                 }
             )
         write_csv(run / "metrics" / f"teacher_a_vs_b_{subset}.csv", comparison)
+        if subset == "oof":
+            opportunity_rows, _, _, _ = boundary_opportunities(s, f, cfg["evaluation"]["threshold"])
+            write_csv(run / "metrics" / "oof_boundary_opportunities.csv", opportunity_rows)
+    # Never inherit training inputs from the last iteration of a diagnostics loop.
+    s, f = load_pair(
+        run / "predictions" / "final_single_val.npz", run / "predictions" / "final_paired_val.npz"
+    )
+    teachers = generate_teachers(s, f, cfg)
+    features, names = compute_features(s, f, cfg)
     validation_rows = [
         {"patient": str(p), "side": str(side)} for p, side in zip(s["patient"], s["side"])
     ]

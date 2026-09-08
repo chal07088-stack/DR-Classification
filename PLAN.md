@@ -7,6 +7,10 @@ ConvNeXt-S, ordered-CORAL, seed 42, five patient folds.
 
 1. Validate identities, paired labels, split disjointness, and official counts.
 2. Fit single and paired experts under the same optimization and RGB protocol.
+   Run both final-expert selections first; inspect boundary events and local/oracle
+   opportunities on the inner validation, then reuse their completed selections.
+   If both experts are B3-silent despite true positives, stop for review before refits/OOF.
+   This selected inner-validation diagnostic is not unbiased OOF evidence.
 3. Generate complete patient-level train OOF predictions. Select epochs inside each
    training fold, then refit that fold; never select with outer holdout labels.
 4. Generate Teacher A and one-boundary Teacher B diagnostics from expert OOF dumps.
@@ -20,6 +24,8 @@ ConvNeXt-S, ordered-CORAL, seed 42, five patient folds.
 Current: source/data/environment reconstruction completed; GPU preflight passed.
 The user authorized a one-shot PHASE 1 launch on 2026-09-08. Runtime state is stored
 in the run's execution_status.json; this plan is not a completion claim.
+Following review, the first run was stopped and its outputs removed at the user's
+request. The reviewed configuration uses the fresh run name ending in `review1`.
 G_teacher_b is the proposed arm fixed before test inspection.
 
 ## PHASE 2 (After Review)

@@ -52,3 +52,28 @@ per-minute in-job progress/VRAM logs, and Windows system-sleep prevention only
 for the lifetime of this process. No scheduled automation or proactive messages
 were created. Training errors stop the queue rather than silently changing batches.
 The expert -> Teacher A/B/gate -> report queue ends after PHASE 1.
+
+## 2026-09-08: Review corrections and clean restart
+
+Stopped the authorized run during final_single_selection epoch 6 and removed only
+its `experimental_results/phase1_convnext_s_seed42_pdfv3` directory as requested.
+The data, source, GPU preflight records, and repository verification are preserved.
+
+Renamed pilot_fraction to inner_validation_fraction without shrinking the data or
+reducing the epoch budget. The protocol still requires up to 24 expert fits.
+Added per-epoch boundary event/recall/ROC-AUC/AP reports and actual epoch data-wait,
+throughput, and validation timing. Both final selections now precede refits/OOF;
+a B3-silence check can halt the remaining queue for review without automatic
+threshold/weight tuning. Local U_b, oracle masks, and joint effects remain distinct.
+
+Run-level provenance already prevented config changes. Added checkpoint-internal
+config/source/manifest/training-row/validation-row fingerprints to also reject
+copied, incompatible, and unmarked legacy checkpoint files.
+Gate inputs now explicitly reload official validation rather than inheriting the
+last diagnostics-loop variables. Rare stratum merging/fallback emits warnings.
+
+The exact-byte audit was already complete, but prepare's old false flag remained.
+Re-ran label/content-index checks and linked the split audit to the matching report.
+All 88,702 content hashes remain unique; near-duplicate detection is not claimed.
+No tracked .gitkeep files remain in this repository. Documented the shared-score
+proportional-odds constraint and the limits of the internal ordinal baseline.

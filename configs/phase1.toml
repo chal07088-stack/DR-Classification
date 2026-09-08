@@ -2,7 +2,7 @@
 phase = 1
 seed = 42
 folds = 5
-run_name = "phase1_convnext_s_seed42_pdfv3"
+run_name = "phase1_convnext_s_seed42_review1"
 
 [data]
 root = "data/eyepacs"
@@ -19,7 +19,7 @@ fusion_dropout = 0.2
 
 [training]
 epochs = 25
-pilot_fraction = 0.1
+inner_validation_fraction = 0.1
 single_batch = 16
 paired_batch = 8
 effective_batch = 32
@@ -28,6 +28,9 @@ head_lr = 0.0001
 weight_decay = 0.0001
 ema_decay = 0.999
 grad_clip = 1.0
+
+[diagnostics]
+stop_if_both_b3_silent = true
 
 [runtime]
 precision = "bf16"

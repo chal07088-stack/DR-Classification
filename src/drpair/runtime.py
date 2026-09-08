@@ -32,6 +32,12 @@ def load_config(path):
         raise ValueError("PHASE 1 head is ordered_coral.")
     if cfg["runtime"]["precision"] != "bf16":
         raise ValueError("PHASE 1 uses BF16 first, with automatic FP16 fallback.")
+    if "pilot_fraction" in cfg["training"]:
+        raise ValueError(
+            "Rename pilot_fraction to inner_validation_fraction; it is not subsampling"
+        )
+    if not 0 < cfg["training"]["inner_validation_fraction"] < 0.5:
+        raise ValueError("inner_validation_fraction must lie between 0 and 0.5")
     return cfg
 
 
@@ -98,8 +104,8 @@ def file_hash(path):
     return digest.hexdigest()
 
 
-def run_directory(cfg):
-    path = Path(cfg["data"]["results"]) / cfg["experiment"]["run_name"]
+def experiment_fingerprint(cfg):
+    """Bind both run records and checkpoint files to their actual experiment inputs."""
     portable_cfg = {k: v for k, v in cfg.items() if k != "data"}
     signature = hashlib.sha256(json.dumps(portable_cfg, sort_keys=True).encode()).hexdigest()
     source_root = Path(__file__).parent
@@ -107,15 +113,23 @@ def run_directory(cfg):
     for source in sorted(source_root.rglob("*.py")):
         code_hash.update(source.relative_to(source_root).as_posix().encode())
         code_hash.update(source.read_text(encoding="utf-8").encode())
-    provenance = {
+    result = {
+        "config_sha256": signature,
         "source_sha256": code_hash.hexdigest(),
-        "manifest_sha256": file_hash(cfg["data"]["manifest"]),
-        "fold_manifest_sha256": file_hash(cfg["data"]["fold_manifest"]),
     }
+    for key in ("manifest", "fold_manifest"):
+        if key in cfg.get("data", {}):
+            result[key + "_sha256"] = file_hash(cfg["data"][key])
+    return result
+
+
+def run_directory(cfg):
+    path = Path(cfg["data"]["results"]) / cfg["experiment"]["run_name"]
+    provenance = experiment_fingerprint(cfg)
     record = path / "run.json"
     if record.exists():
         old = json.loads(record.read_text(encoding="utf-8"))
-        if old["config_sha256"] != signature or any(old.get(k) != v for k, v in provenance.items()):
+        if any(old.get(k) != v for k, v in provenance.items()):
             raise ValueError("Config changed. Use a new run_name; old artifacts cannot be reused.")
     else:
         git = subprocess.run(
@@ -124,7 +138,6 @@ def run_directory(cfg):
         save_json(
             record,
             {
-                "config_sha256": signature,
                 "config": cfg,
                 "git_commit": git.stdout.strip(),
                 "torch": torch.__version__,

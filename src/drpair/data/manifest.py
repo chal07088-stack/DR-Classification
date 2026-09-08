@@ -1,5 +1,6 @@
 import csv
 import re
+import warnings
 from collections import Counter, defaultdict
 from pathlib import Path
 
@@ -87,8 +88,19 @@ def patient_folds(rows, folds=5, seed=42):
     strata = np.array([max(patients[p]) for p in ids])
     # Rare grades share a stratum; the original grades remain unchanged.
     counts = Counter(strata)
+    if any(n < folds for n in counts.values()):
+        warnings.warn(
+            f"Merging rare patient-grade strata with fewer than {folds} patients: {dict(counts)}",
+            RuntimeWarning,
+            stacklevel=2,
+        )
     strata = np.array([x if counts[x] >= folds else -1 for x in strata])
     if np.any(np.array(list(Counter(strata).values())) < folds):
+        warnings.warn(
+            "Patient-fold stratification unavailable even after merging; using unstratified folds",
+            RuntimeWarning,
+            stacklevel=2,
+        )
         strata[:] = 0
     assignment = {}
     for fold, (_, held) in enumerate(

@@ -1,5 +1,5 @@
 import numpy as np
-from sklearn.metrics import cohen_kappa_score, f1_score, roc_auc_score
+from sklearn.metrics import average_precision_score, cohen_kappa_score, f1_score, roc_auc_score
 
 from .ordinal import decode, project, violations
 
@@ -77,6 +77,43 @@ def boundary_metrics(y, qs, qf, threshold=0.5):
                 else None,
             }
         )
+    return rows
+
+
+def expert_boundary_diagnostics(y, q, threshold=0.5, patient=None):
+    """Threshold event counts and ranking diagnostics, including silent boundaries."""
+    y, q = np.asarray(y), project(q)
+    rows = []
+    for b in range(4):
+        target, predicted = y > b, q[:, b] >= threshold
+        positive, negative = int(target.sum()), int((~target).sum())
+        tp = int((target & predicted).sum())
+        fp = int((~target & predicted).sum())
+        row = {
+            "boundary": b,
+            "positive": positive,
+            "negative": negative,
+            "predicted_positive": int(predicted.sum()),
+            "tp": tp,
+            "fp": fp,
+            "fn": positive - tp,
+            "tn": negative - fp,
+            "recall": tp / positive if positive else None,
+            "precision": tp / int(predicted.sum()) if predicted.any() else None,
+            "auc": float(roc_auc_score(target, q[:, b])) if positive and negative else None,
+            "average_precision": float(average_precision_score(target, q[:, b]))
+            if positive
+            else None,
+            "brier": float(np.mean((q[:, b] - target) ** 2)),
+            "p_min": float(q[:, b].min()),
+            "p_max": float(q[:, b].max()),
+            "p50": float(np.median(q[:, b])),
+            "positive_p50": float(np.median(q[target, b])) if positive else None,
+            "silent_at_threshold": positive > 0 and not predicted.any(),
+        }
+        if patient is not None:
+            row["positive_patients"] = len(np.unique(np.asarray(patient)[target]))
+        rows.append(row)
     return rows
 
 
