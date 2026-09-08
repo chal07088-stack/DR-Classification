@@ -1,60 +1,87 @@
 # Experiment Plan
 
-## PHASE 1
+## PHASE 1A: Final Experts and Mandatory Review
 
-EyePACS official split: 35,126 train / 10,906 validation / 42,670 test eyes.
-ConvNeXt-S, ordered-CORAL, seed 42, five patient folds.
+EyePACS official train 35,126 eyes; validation 10,906 eyes; test 42,670 eyes.
+ConvNeXt-S, ordered-CORAL, RGB 512px, seed 42. Single and paired experts are fully trainable.
 
-1. Validate identities, paired labels, split disjointness, and official counts.
-2. Fit single and paired experts under the same optimization and RGB protocol.
-   Run both final-expert selections first; inspect boundary events and local/oracle
-   opportunities on the inner validation, then reuse their completed selections.
-   If both experts are B3-silent despite true positives, stop for review before refits/OOF.
-   This selected inner-validation diagnostic is not unbiased OOF evidence.
-3. Generate complete patient-level train OOF predictions. Select epochs inside each
-   training fold, then refit that fold; never select with outer holdout labels.
-4. Generate Teacher A and one-boundary Teacher B diagnostics from expert OOF dumps.
-5. Fit and cross-fit gates on official validation predictions from final experts.
-   Official validation was not used to choose expert checkpoints.
-6. Compare fixed A-G arms plus internal scalar-asymmetry and entropy baselines.
-7. Report overall, gap 0/1/>=1/>=2, boundary metrics, alpha distributions,
-   clustered bootstrap intervals, and local teacher versus joint deployed utility.
-8. Produce the PHASE 1 report and stop for review.
+1. Validate official patient manifests and the data audit.
+2. Complete train-internal single and paired epoch selection, followed by full-train refits.
+   This is up to four fits, not a 10% data pilot. Reuse completed matching checkpoints.
+3. Save final validation predictions. Do not infer test images in this stage.
+4. On validation, cross-fit raw/Platt/isotonic comparison and training-selected specificity
+   operating points with five patient folds. These are not five expert training folds.
+5. Report overall/gap performance, boundary support, clinical misses at grade >=2 and >=3,
+   patient-clustered intervals, binary masks and the finite 625-policy alpha grid.
+6. Report raw-feature logistic predictability of local counterfactual benefits and descriptive
+   target-grade-adjusted shrinkage associations. Preserve inputs, fitted parameters and predictions.
+7. Write diagnostics/phase1a/REPORT.md and exit with awaiting_review. No automatic next stage.
 
-Current: source/data/environment reconstruction completed; GPU preflight passed.
-The user authorized a one-shot PHASE 1 launch on 2026-09-08. Runtime state is stored
-in the run's execution_status.json; this plan is not a completion claim.
-Following review, the first run was stopped and its outputs removed at the user's
-request. The reviewed configuration uses the fresh run name ending in `review1`.
-G_teacher_b is the proposed arm fixed before test inspection.
+Binary/grid policies use labels and optimize per-eye squared grade error, not population QWK.
+Neither is a continuous-gate or QWK upper bound. Sparse threshold events do not exclude calibration
+or ranking signal. Do not use a universal +0.005 cutoff. Failure of an exploratory logistic probe
+is not proof that no learnable gate exists.
 
-## PHASE 2 (After Review)
+All validation diagnostics are exploratory and conditional on one trained expert pair.
+Confidence intervals do not include expert training seeds or refitting calibration in each bootstrap.
+The user reviews support, effect size, uncertainty and calibration before deciding on 1B.
 
-Repeat the locked protocol at training seeds 42, 123, 128 with five patient folds.
-Report seed mean and sample SD, effect sign across seeds, and patient bootstrap CI
-separately; folds are not independent training seeds.
+## PHASE 1B: OOF, Teachers and Gate Comparison After Review
 
-Add external fusion comparator implementations only after inspecting their official
-code and fixing the adaptation protocol. Candidates in the supplied comparator PDF:
-Multimodal Dynamics, uncertainty suppression, and bilateral medical fusion.
-The current generic entropy baseline is not an official reproduction of any paper.
+Explicit command: python scripts/run_phase1.py --stage 1b --reviewed-1a
 
-Pre-register threshold/calibration sensitivity, the overall noninferiority margin,
-boundary hypothesis families, and confirmatory versus exploratory analyses before
-additional test evaluation. Locality regression in PHASE 1 is descriptive.
-Within-patient boundary permutation needs a defensible exchangeability null;
-unrestricted shuffling of nonexchangeable severity boundaries is not confirmatory.
+- Reuse final experts. Generate five patient-fold expert OOF pairs on official train.
+- Preserve Teacher A and one-boundary Teacher B targets from expert OOF for diagnostics.
+- Fit and cross-fit gates on official validation predictions; final experts never used that split
+  for epoch selection. Fit final gates on all validation and evaluate the fixed arms on test.
+- Keep G_teacher_b as proposed before test inspection. A-G comparisons are implemented;
+  added calibrated gate and hard-switch comparator protocols must be frozen before test access.
+- Teacher B replaces one coordinate, projects and decodes, and measures squared-error recovery.
+  Joint deployed gate utility remains a separate evaluation; the oracle never supplies its labels.
+- Report QWK, clinical boundaries, alpha distributions/collapse, and local-versus-joint effects.
 
-## PHASE 3 (After Protocol/Paper Review)
+Before 1B test access, record the primary endpoint, operating point, overall safety criterion,
+comparison family and any calibration changes. Do not choose a favorable metric after test results.
+No numerical noninferiority margin has yet been agreed; report estimated differences and intervals
+without claiming formal noninferiority.
 
-External paired datasets and additional encoder families (ResNet, EfficientNet, ViT).
-Verify subject keys, per-eye severity label provenance, and boundary event counts first.
-ODIR-5K diagnostic labels alone are not automatically a 0-4 DR grading ground truth;
-the reference project's derived labels require a separate audit.
+## PHASE 2: Reproducibility, Comparators and Mechanism
 
-Assess boundary-level power before strong external claims. Report sparse or negative
-findings. Fuzzy gates, CORN, additional domains, and expensive robustness are optional
-extensions with their own explicit experiment decisions.
+Requires review of PHASE 1B. These are plans, not implementations or completed experiments.
 
-The two-paper suggestion in the PDFs is a possible publication strategy, not an
-automatic execution instruction or an assertion that two contributions are established.
+- Repeat final experts and validation-crossfit gates at seeds 42, 123, 128 under one locked protocol.
+  The current gate fits on validation, so repeating train expert OOF for all seeds is optional
+  unless needed by the final claims. Folds are not independent training seeds.
+- Reproduce Huang et al.'s official two-stage paired feature fusion; distinguish the original
+  training protocol from controlled adaptations. Report single-model and ensemble results separately.
+- Compare simple prediction-based hard switching, global gates, boundary task-loss, Teacher A/B,
+  and calibrated counterparts with identical patient partitions and operating-point selection rules.
+- Validate whether improvement survives calibration and threshold tuning. Fit calibration,
+  thresholds and gates only on training portions of each cross-fitting split; nest when needed.
+- Extend association plots with controlled fellow-input interventions; distinguish model response
+  from clinical causality and account for image quality, label uncertainty and out-of-distribution pairs.
+- Assess risk-coverage/AURC after defining a deployable rejection score; alpha is intervention
+  strength, not automatically confidence. Include baseline scores and uncertainty intervals.
+- Predefine confirmatory hypotheses and BH/Holm families; disclose exploratory and negative results.
+
+## PHASE 3: External Data and Encoder Generalization
+
+Requires separate authorization after the earlier results are reviewed.
+
+- Messidor-2 offers official image pairing. Audit third-party per-eye grade provenance and licensing
+  before external ordinal validation; report complete-pair and grade support counts.
+- ODIR-5K offers bilateral images and diagnostic labels, not automatically trustworthy 0-4 DR grades.
+  Audit per-eye keywords/labels. Binary disease generalization is a different task and must be labeled so.
+- Add a matched-protocol ResNet-50 experiment, then EfficientNet if justified by resources.
+  Huang's original ResNet experiment alone does not isolate backbone effects from training changes.
+
+## Contribution and Publication Boundaries
+
+Check the reference pair project's publication/submission status, contributors and overlapping results.
+Do not present its harm finding as a new independent discovery. The proposed incremental claim is
+boundary-specific diagnosis and mitigation, conditional on evidence. Author contributions and citations
+must be agreed before submission. Neither a venue nor novelty is guaranteed by this experiment list.
+
+Primary references: [Huang et al.](https://pmc.ncbi.nlm.nih.gov/articles/PMC10216935/),
+[Messidor-2](https://design.adcis.net/en/third-party/messidor2/),
+[ODIR-5K](https://odir2019.grand-challenge.org/dataset/).

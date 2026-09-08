@@ -13,17 +13,15 @@ def check_probabilities(q):
 def project(q):
     """Euclidean projection onto decreasing probabilities, exact 4-point PAVA."""
     q = check_probabilities(q)
-    out = np.empty_like(q)
-    for i, row in enumerate(q):
-        blocks = []
-        for v in row:
-            blocks.append([float(v), 1])
-            while len(blocks) > 1 and blocks[-2][0] < blocks[-1][0]:
-                right, left = blocks.pop(), blocks.pop()
-                n = left[1] + right[1]
-                blocks.append([(left[0] * left[1] + right[0] * right[1]) / n, n])
-        out[i] = np.concatenate([np.repeat(v, n) for v, n in blocks])
-    return out.astype(np.float32)
+    # The PAVA min-max identity vectorizes all eyes for the diagnostic mask grid.
+    means = {(a, b): q[:, a : b + 1].mean(1) for a in range(4) for b in range(a, 4)}
+    out = [
+        np.minimum.reduce(
+            [np.maximum.reduce([means[a, b] for b in range(i, 4)]) for a in range(i + 1)]
+        )
+        for i in range(4)
+    ]
+    return np.column_stack(out).astype(np.float32)
 
 
 def violations(q):

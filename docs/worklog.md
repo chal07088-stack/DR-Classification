@@ -77,3 +77,35 @@ Re-ran label/content-index checks and linked the split audit to the matching rep
 All 88,702 content hashes remain unique; near-duplicate detection is not claimed.
 No tracked .gitkeep files remain in this repository. Documented the shared-score
 proportional-odds constraint and the limits of the internal ordinal baseline.
+
+## 2026-09-08: Staged PHASE 1A and Reviewer Diagnostics
+
+Integrated the colleague's boundary-power tests, explicit validation selection and
+audit summary with the local checkpoint/early-diagnostic changes. Source conflicts
+are resolved without replacing either contributor's work wholesale.
+
+Default execution now performs only final expert selection/refits and official
+validation diagnostics. There are up to four expert fits in 1A. Test image inference,
+expert OOF and the proposed gate are deferred to explicit stage 1B after review.
+The run name is phase1_convnext_s_seed42_staged_v1. GPU settings retain the measured
+single B16/paired B8, effective 32, BF16 and 13 GiB allocator limit.
+
+Added patient-cross-fitted Platt/isotonic calibration, training-selected 90%/95%
+specificity operating points, grade >=2/>=3 counts and clustered sensitivity deltas,
+binary and finite-grid rollback diagnostics, boundary event counts, raw-feature
+logistic predictability probes, and descriptive grade-adjusted shrinkage slopes.
+Outputs preserve predictions, calibration/probe parameters, CSV metrics, report and
+PNG/PDF figures. Label-aware policies are not QWK ceilings or learned gate results.
+
+Teacher B remains one-boundary squared-error utility after projection/decoding;
+four-boundary deployed utility is evaluated separately. Its utility-to-alpha link
+and support scaling remain design choices, not analytically optimal coefficients.
+
+The report always ends in awaiting_review. Low threshold counts do not automatically
+reject the idea. No universal QWK cutoff, formal noninferiority claim or automatic
+next phase is introduced. Clinical primary-endpoint/comparator changes must be
+frozen before test access. Future Huang/seed/mechanism/external work is in PLAN.md.
+
+Staging verification: 34 CPU tests passed, including independent PAVA comparison,
+heldout-label perturbation tests, the mandatory stage stop and synthetic full report.
+Real EyePACS performance is not represented by these verification tests.

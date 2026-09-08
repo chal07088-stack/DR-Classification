@@ -72,7 +72,10 @@ Overall 및 gap별 QWK, Macro-F1, Grade-3 F1, MAE, Accuracy, under/over-grading�
 Severe under-grading 비율의 분모는 실제 grade>=3인 눈입니다.
 Boundary AUC/Brier와 harmful/beneficial count, alpha 평균·분산·분위수·붕괴 지표를 보고합니다.
 기본 threshold는 모든 arm에 동일하게 0.5이며, weighted BCE는 사용하지 않습니다.
-Calibration/threshold 민감도 분석은 PHASE 2에서 사전에 정의할 추가 비교입니다.
+Calibration/threshold 진단은 PHASE 1A에서 raw/Platt/isotonic 및 90%/95% 목표 특이도로 수행합니다.
+각 calibration과 threshold는 validation 환자 5-fold의 training 부분에서만 적합합니다.
+Heldout에서 달성된 실제 특이도를 함께 공개하며 목표 특이도와 같다고 가정하지 않습니다.
+제안 gate의 calibration 비교는 1B test 접근 전에 적합 순서와 비교군을 고정해야 합니다.
 
 환자 단위 paired bootstrap은 같은 환자의 두 눈을 함께 재표집합니다.
 BH/Holm은 boundary slope 4개와 B0 대비 interaction 3개를 각각 별도 family로 보정합니다.
@@ -82,7 +85,8 @@ BH/Holm은 boundary slope 4개와 B0 대비 interaction 3개를 각각 별도 fa
 
 `inner_validation_fraction=0.1`은 각 expert 학습 집합의 약 10%를 내부 검증으로 남긴다는 뜻입니다.
 나머지 약 90%로 선택 학습하므로 저비용 10% subsample 실험이 아닙니다.
-최대 25 epoch의 선택 학습 12회와 선택된 epoch 수만큼의 전체 refit 12회는 그대로 필요합니다.
+1A는 최대 25 epoch의 선택 학습 2회와 선택된 epoch 수만큼의 전체 refit 2회입니다.
+검토 후 1B까지 진행하면 OOF 선택 10회와 refit 10회가 추가되어 총 최대 24회가 됩니다.
 리뷰의 약 85 GPU-hour는 refit도 25 epoch라고 가정한 처리량 기반 근사이며,
 validation/추론/I/O 시간을 포함한 확정 ETA나 엄밀한 하한은 아닙니다.
 
@@ -91,13 +95,32 @@ validation/추론/I/O 시간을 포함한 확정 ETA나 엄밀한 하한은 아�
 기존 선택 checkpoint를 재사용하므로 추가 expert 학습은 없습니다. 모델 선택에 쓴 내부 검증이므로
 이 진단은 OOF 성능 증거나 논문 최종 검정이 아니라 계산 예산 보호용입니다.
 
-정답 B3 양성이 있는데 두 expert 모두 0.5에서 B3 양성을 한 건도 예측하지 못하면
-`needs_review`로 중단하고 나머지 refit/OOF 비용을 쓰지 않습니다. 초기 1 epoch만으로 중단하지 않습니다.
-다른 경계의 개입 횟수가 적다는 이유만으로 가설이 틀렸다고 결론내리지 않습니다.
+정답 B3 양성이 있는데 두 expert 모두 0.5에서 양성을 예측하지 못한 경우에도
+이를 calibration/ranking과 함께 판단하도록 기본 early-stop 옵션을 끕니다.
+두 final refit의 validation 진단 보고서를 만든 뒤 항상 `awaiting_review`로 멈춥니다.
+경계의 개입 횟수가 적다는 이유만으로 가설이 틀렸다고 결론내리지 않습니다.
 기본 unweighted BCE와 threshold 0.5는 유지하며, 가중치/threshold를 자동으로 바꾸지 않습니다.
 매 선택 epoch의 경계 진단은 추가 이미지 추론 없이 이미 계산한 validation 확률로 저장합니다.
 진짜 train OOF가 완성되면 `oof_boundary_opportunities.csv`에서 같은 진단을 다시 수행합니다.
 Oracle mask 선택 횟수는 tie-breaking에 영향을 받으며 boundary의 인과적 기여도는 아닙니다.
+
+### 리뷰 반영 실행 경계
+
+`scripts/run_phase1.py --stage 1a`가 기본 실행입니다. Test 이미지를 예측하지 않습니다.
+0/0.25/0.5/0.75/1을 네 경계에 조합한 625-policy grid는 연속 gate의 진단용 유한 근사입니다.
+Binary/grid 모두 per-eye squared error로 선택하며 QWK 최적 상한이라고 해석하지 않습니다.
+Calibration 전후 headroom, 임상 경계 사건 수, 환자 bootstrap, descriptive shrinkage slope를 저장합니다.
+Raw-feature logistic cross-fitting은 local positive U_b의 예측 가능성 진단이며 proposed gate 결과가 아닙니다.
+신뢰구간은 현재 expert와 cross-fitted 예측에 조건부이며 학습 seed와 calibration 재적합 변동은 포함하지 않습니다.
+
+Teacher B gate는 expert를 고정하고 inference-safe feature로 네 alpha를 예측합니다.
+현재 네트워크는 입력 정규화 -> Linear(16 hidden) -> Tanh -> Linear(4) -> sigmoid입니다.
+학습 손실은 `mean((alpha-target_alpha)^2) + 0.01*mean(alpha)`이며 AdamW를 사용합니다.
+희귀 경계 support scale과 utility-to-alpha 변환은 설계 선택이지 최적 alpha의 이론적 유도가 아닙니다.
+현재 raw 방법에서 Teacher A와 B의 차이는 supervision이며 같은 gate 용량과 학습 조건을 비교합니다.
+
+명시적인 `--stage 1b --reviewed-1a`를 주어야 OOF와 gate 학습으로 진행합니다.
+1A 보고서와 예측 파일의 지문을 검사하므로 변경된 결과를 이전 검토로 간주하지 않습니다.
 
 ## 구현 수정 사항
 

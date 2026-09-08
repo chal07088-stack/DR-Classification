@@ -140,6 +140,7 @@ def test_initial_pair_selections_precede_refits_without_extra_fits(tmp_path, mon
 
     cfg = load_config(Path(__file__).parents[1] / "configs" / "phase1.toml")
     cfg["training"]["epochs"] = 1
+    cfg["diagnostics"]["stop_if_both_b3_silent"] = True
     cfg["data"] = {
         "root": str(tmp_path),
         "manifest": str(tmp_path / "manifest.csv"),

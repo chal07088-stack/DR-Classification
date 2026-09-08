@@ -12,7 +12,13 @@ from drpair.data.manifest import (
     validate_manifest,
 )
 from drpair.models import build_expert
-from drpair.runtime import run_directory, save_json, seed_everything, setup_device
+from drpair.runtime import (
+    experiment_fingerprint,
+    run_directory,
+    save_json,
+    seed_everything,
+    setup_device,
+)
 from drpair.training.engine import fit
 from drpair.training.predictions import predict, save_predictions
 
@@ -25,7 +31,10 @@ def expert_jobs(folds=5):
     ]
 
 
-def run_experts(cfg, jobs, selection_only=False):
+def run_experts(cfg, jobs, selection_only=False, evaluation_splits=("val",)):
+    jobs = list(jobs)
+    if any(split not in ("val", "test") for split in evaluation_splits):
+        raise ValueError("Expert evaluation split must be val or test")
     device, dtype = setup_device(cfg)
     rows = read_manifest(cfg["data"]["manifest"])
     validate_manifest(rows, cfg["data"]["root"], official=True)
@@ -36,12 +45,13 @@ def run_experts(cfg, jobs, selection_only=False):
         save_json(
             run / "expert_schedule.json",
             {
-                "jobs": expert_jobs(),
+                "jobs": jobs,
+                "evaluation_splits": list(evaluation_splits),
                 "inner_selection": "patient-disjoint subset of each job's training patients",
                 "full_refit": True,
                 "test_used_for_selection": False,
-                "retained_experts": 12,
-                "selection_pilots": 12,
+                "retained_experts": len(jobs),
+                "selection_pilots": len(jobs),
                 "inner_validation_fraction": cfg["training"]["inner_validation_fraction"],
                 "selection_training_fraction_approx": 1
                 - cfg["training"]["inner_validation_fraction"],
@@ -129,7 +139,7 @@ def run_experts(cfg, jobs, selection_only=False):
             )
             del loader
         else:
-            for split in ("val", "test"):
+            for split in evaluation_splits:
                 subset = [r for r in rows if r["split"] == split]
                 loader = make_loader(subset, cfg, paired, False, seed)
                 q = predict(model, loader, device, dtype, paired)
@@ -140,6 +150,41 @@ def run_experts(cfg, jobs, selection_only=False):
         torch.cuda.empty_cache()
     if not selection_only:
         aggregate_oof(cfg)
+
+
+def predict_final_experts(cfg, splits=("test",)):
+    """Reuse frozen final checkpoints after the explicit PHASE 1A review boundary."""
+    if any(split not in ("val", "test") for split in splits):
+        raise ValueError("Unknown evaluation split")
+    device, dtype = setup_device(cfg)
+    run = run_directory(cfg)
+    rows = read_manifest(cfg["data"]["manifest"])
+    identity = experiment_fingerprint(cfg)
+    for kind in ("single", "paired"):
+        paired = kind == "paired"
+        saved = torch.load(
+            run / "checkpoints" / f"final_{kind}.pt", map_location="cpu", weights_only=True
+        )
+        fingerprint = saved.get("fingerprint", {})
+        if (
+            not saved.get("complete")
+            or saved.get("paired") != paired
+            or any(fingerprint.get(k) != v for k, v in identity.items())
+        ):
+            raise ValueError("Final expert checkpoint does not match this run")
+        model = build_expert(cfg, paired)
+        model.load_state_dict(saved["model"])
+        model.to(device).eval()
+        del saved
+        for split in splits:
+            subset = [r for r in rows if r["split"] == split]
+            loader = make_loader(subset, cfg, paired, False, cfg["experiment"]["seed"])
+            q = predict(model, loader, device, dtype, paired)
+            save_predictions(run / "predictions" / f"final_{kind}_{split}.npz", subset, q, seed=42)
+            del loader
+        del model
+        gc.collect()
+        torch.cuda.empty_cache()
 
 
 def aggregate_oof(cfg):

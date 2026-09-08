@@ -1,4 +1,4 @@
-"""Run the explicitly authorized PHASE 1 once, then stop. No scheduler or notifications."""
+"""Default: experts + validation diagnostics, then stop for PHASE 1A review."""
 
 import argparse
 import ctypes
@@ -9,14 +9,23 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 from drpair.experiments.precheck import BoundaryReviewRequired
+from drpair.experiments.stages import execute_stage, require_review
 from drpair.runtime import load_config, run_directory, save_json
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--config", default="configs/phase1.toml")
+    parser.add_argument("--stage", choices=("1a", "1b"), default="1a")
+    parser.add_argument(
+        "--reviewed-1a",
+        action="store_true",
+        help="Explicit confirmation to run OOF and gates after reviewing 1A",
+    )
     args = parser.parse_args()
     cfg = load_config(args.config)
+    if args.stage == "1b":
+        require_review(cfg, args.reviewed_1a)
     run = run_directory(cfg)
     lock = run / "RUNNING.lock"
     with lock.open("x", encoding="utf-8") as stream:
@@ -24,11 +33,13 @@ def main():
     status = {
         "pid": os.getpid(),
         "phase": 1,
+        "requested_stage": args.stage,
         "seed": 42,
         "folds": 5,
         "started_utc": datetime.now(UTC).isoformat(),
         "config": str(Path(args.config).resolve()),
         "automatic_next_phase": False,
+        "automatic_next_stage": False,
     }
     if os.name == "nt":
         # Keep training awake without forcing the user's display to remain on.
@@ -42,17 +53,7 @@ def main():
         print(f"PHASE 1 {stage}: {state}", flush=True)
 
     try:
-        from drpair.evaluation.report import make_report
-        from drpair.experiments.experts import expert_jobs, run_experts
-        from drpair.experiments.gate_study import run_gate_study
-
-        update("experts")
-        run_experts(cfg, expert_jobs())
-        update("teachers_and_gates")
-        run_gate_study(cfg)
-        update("report")
-        report = make_report(cfg)
-        update("finished", "complete", report=str(report))
+        execute_stage(cfg, args.stage, args.reviewed_1a, update)
     except BoundaryReviewRequired as exc:
         update("expert_boundary_precheck", "needs_review", error=str(exc))
         print(str(exc), flush=True)

@@ -2,7 +2,7 @@
 phase = 1
 seed = 42
 folds = 5
-run_name = "phase1_convnext_s_seed42_review1"
+run_name = "phase1_convnext_s_seed42_staged_v1"
 
 [data]
 root = "data/eyepacs"
@@ -30,7 +30,11 @@ ema_decay = 0.999
 grad_clip = 1.0
 
 [diagnostics]
-stop_if_both_b3_silent = true
+stop_if_both_b3_silent = false
+alpha_grid = [0.0, 0.25, 0.5, 0.75, 1.0]
+calibration_methods = ["raw", "platt", "isotonic"]
+specificity_targets = [0.90, 0.95]
+bootstrap_repeats = 1000
 
 [runtime]
 precision = "bf16"

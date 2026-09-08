@@ -14,11 +14,15 @@ def main():
     selection = experts.add_mutually_exclusive_group(required=True)
     selection.add_argument("--job", help="final_single, final_paired, oof1_single, ...")
     selection.add_argument("--all", action="store_true")
+    experts.add_argument("--reviewed-1a", action="store_true")
+    commands.add_parser("diagnostics", help="Rebuild the validation-only PHASE 1A report")
     commands.add_parser("aggregate-oof", help="Aggregate completed patient OOF prediction files")
-    commands.add_parser(
+    gates = commands.add_parser(
         "gates", help="Teacher A/B and validation cross-fitting on saved predictions"
     )
-    commands.add_parser("report", help="Evaluate all fixed arms and end PHASE 1")
+    gates.add_argument("--reviewed-1a", action="store_true")
+    report = commands.add_parser("report", help="Evaluate all fixed arms and end PHASE 1")
+    report.add_argument("--reviewed-1a", action="store_true")
     args = parser.parse_args()
     cfg = load_config(args.config)
     if args.command == "prepare":
@@ -39,19 +43,30 @@ def main():
         print(json.dumps(status(cfg), indent=2))
     elif args.command == "experts":
         from drpair.experiments.experts import expert_jobs, run_experts
+        from drpair.experiments.stages import require_review
 
+        if args.all or args.job.startswith("oof"):
+            require_review(cfg, args.reviewed_1a)
         run_experts(cfg, expert_jobs() if args.all else [args.job])
+    elif args.command == "diagnostics":
+        from drpair.evaluation.feasibility import make_feasibility_report
+
+        print(make_feasibility_report(cfg))
     elif args.command == "aggregate-oof":
         from drpair.experiments.experts import aggregate_oof
 
         aggregate_oof(cfg)
     elif args.command == "gates":
         from drpair.experiments.gate_study import run_gate_study
+        from drpair.experiments.stages import require_review
 
+        require_review(cfg, args.reviewed_1a)
         run_gate_study(cfg)
     elif args.command == "report":
         from drpair.evaluation.report import make_report
+        from drpair.experiments.stages import require_review
 
+        require_review(cfg, args.reviewed_1a)
         print(make_report(cfg))
 
 
