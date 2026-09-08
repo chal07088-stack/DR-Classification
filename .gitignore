@@ -1,49 +1,24 @@
-# Python
+.venv/
 __pycache__/
 *.py[cod]
-*.pyo
 .pytest_cache/
-.ipynb_checkpoints/
-
-# Environments
+.ruff_cache/
 .env
-.venv/
-venv/
-env/
-
-# Local data and heavy experiment artifacts
-data/raw/**
-data/processed/**
-!data/raw/.gitkeep
-!data/processed/.gitkeep
-
-results/
-runs/
-outputs/
-checkpoints/
-*.ckpt
-*.pth
-*.pt
-*.pkl
-*.npy
-*.npz
-
-# Logs
-*.log
-wandb/
-lightning_logs/
-
-# OS / editor
-.DS_Store
-Thumbs.db
+.env.*
 .vscode/
-.idea/
-
-# Heavy files inside experiment records
+Thumbs.db
+.DS_Store
+*.pt
+*.pth
+*.ckpt
+*.npz
+*.npy
+experimental_results/**/predictions/
 experimental_results/**/checkpoints/
-experimental_results/**/*.pth
-experimental_results/**/*.pt
-experimental_results/**/*.ckpt
-experimental_results/**/*.pkl
-experimental_results/**/*.npy
-experimental_results/**/*.npz
+experimental_results/**/features/
+experimental_results/**/teachers/
+experimental_results/**/gates/
+data/eyepacs/
+.dvc/cache/
+.dvc/tmp/
+.dvc/config.local

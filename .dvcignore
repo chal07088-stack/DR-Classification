@@ -1,8 +1,4 @@
-.git/
-__pycache__/
-.ipynb_checkpoints/
-.pytest_cache/
-wandb/
-runs/
-outputs/
-checkpoints/
+.venv
+__pycache__
+.pytest_cache
+.ruff_cache

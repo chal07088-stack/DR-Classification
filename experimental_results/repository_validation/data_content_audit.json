@@ -1,0 +1,11 @@
+{
+  "source_label_match": true,
+  "images": 88702,
+  "unique_content_hashes": 88702,
+  "byte_duplicate_groups": 0,
+  "byte_duplicate_images": 0,
+  "cross_split_duplicate_groups": 0,
+  "conflicting_label_groups": 0,
+  "near_duplicate_images_checked": false,
+  "dvc_tree_md5": "b0b8205bf1998d4c4e5b1b64ca51f59d.dir"
+}

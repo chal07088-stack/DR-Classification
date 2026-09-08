@@ -1,0 +1,43 @@
+{
+  "status": "passed",
+  "counts": {
+    "train": {
+      "eyes": 35126,
+      "patients": 17563,
+      "grades": {
+        "0": 25810,
+        "1": 2443,
+        "2": 5292,
+        "4": 708,
+        "3": 873
+      }
+    },
+    "val": {
+      "eyes": 10906,
+      "patients": 5453,
+      "grades": {
+        "0": 8130,
+        "2": 1579,
+        "1": 720,
+        "3": 237,
+        "4": 240
+      }
+    },
+    "test": {
+      "eyes": 42670,
+      "patients": 21335,
+      "grades": {
+        "0": 31403,
+        "2": 6282,
+        "1": 3042,
+        "4": 966,
+        "3": 977
+      }
+    }
+  },
+  "patient_disjoint": true,
+  "complete_pairs": true,
+  "folds": 5,
+  "seed": 42,
+  "image_content_duplicates_checked": false
+}
