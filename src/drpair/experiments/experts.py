@@ -14,6 +14,7 @@ from drpair.data.manifest import (
 from drpair.models import build_expert
 from drpair.runtime import (
     experiment_fingerprint,
+    fingerprints_match,
     run_directory,
     save_json,
     seed_everything,
@@ -169,7 +170,7 @@ def predict_final_experts(cfg, splits=("test",)):
         if (
             not saved.get("complete")
             or saved.get("paired") != paired
-            or any(fingerprint.get(k) != v for k, v in identity.items())
+            or not fingerprints_match(fingerprint, identity, run)
         ):
             raise ValueError("Final expert checkpoint does not match this run")
         model = build_expert(cfg, paired)

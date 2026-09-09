@@ -123,23 +123,57 @@ def experiment_fingerprint(cfg):
     return result
 
 
+def git_commit():
+    result = subprocess.run(
+        ["git", "rev-parse", "HEAD"], capture_output=True, text=True, check=False
+    )
+    return result.stdout.strip()
+
+
+def fingerprints_match(saved, expected, run=None):
+    """Accept an exact fingerprint or one explicitly authorized analysis-only upgrade."""
+    if not isinstance(saved, dict):
+        return False
+    if all(saved.get(key) == value for key, value in expected.items()):
+        return True
+    if run is None or saved.get("source_sha256") == expected.get("source_sha256"):
+        return False
+    for key, value in expected.items():
+        if key != "source_sha256" and saved.get(key) != value:
+            return False
+    run = Path(run)
+    record_path = run / "run.json"
+    authorization_path = run / "provenance" / "analysis_source_upgrade.json"
+    if not record_path.is_file() or not authorization_path.is_file():
+        return False
+    record = json.loads(record_path.read_text(encoding="utf-8"))
+    authorization = json.loads(authorization_path.read_text(encoding="utf-8"))
+    return (
+        authorization.get("schema") == 1
+        and authorization.get("from_git_commit") == record.get("git_commit")
+        and authorization.get("to_git_commit") == git_commit()
+        and authorization.get("from_source_sha256") == saved.get("source_sha256")
+        and authorization.get("to_source_sha256") == expected.get("source_sha256")
+        and authorization.get("config_sha256") == expected.get("config_sha256")
+        and authorization.get("manifest_sha256") == expected.get("manifest_sha256")
+        and authorization.get("fold_manifest_sha256") == expected.get("fold_manifest_sha256")
+    )
+
+
 def run_directory(cfg):
     path = Path(cfg["data"]["results"]) / cfg["experiment"]["run_name"]
     provenance = experiment_fingerprint(cfg)
     record = path / "run.json"
     if record.exists():
         old = json.loads(record.read_text(encoding="utf-8"))
-        if any(old.get(k) != v for k, v in provenance.items()):
+        if not fingerprints_match(old, provenance, path):
             raise ValueError("Config changed. Use a new run_name; old artifacts cannot be reused.")
     else:
-        git = subprocess.run(
-            ["git", "rev-parse", "HEAD"], capture_output=True, text=True, check=False
-        )
         save_json(
             record,
             {
                 "config": cfg,
-                "git_commit": git.stdout.strip(),
+                "git_commit": git_commit(),
                 "torch": torch.__version__,
                 **provenance,
             },
