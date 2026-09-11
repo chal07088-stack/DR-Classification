@@ -1,0 +1,14 @@
+{
+  "job": "final_paired",
+  "stage": "training",
+  "epoch": 6,
+  "epochs": 6,
+  "step": 4391,
+  "steps": 4391,
+  "samples": 35126,
+  "updates": 6588,
+  "loss": 0.12748883121818166,
+  "elapsed_seconds": 805.4681220999992,
+  "peak_allocated_gib": 8.742562770843506,
+  "peak_reserved_gib": 8.978515625
+}

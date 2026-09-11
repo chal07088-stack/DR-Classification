@@ -1,0 +1,14 @@
+{
+  "job": "oof3_single",
+  "stage": "training",
+  "epoch": 10,
+  "epochs": 10,
+  "step": 1757,
+  "steps": 1757,
+  "samples": 28100,
+  "updates": 8790,
+  "loss": 0.11227298250561082,
+  "elapsed_seconds": 326.04838790002395,
+  "peak_allocated_gib": 8.763375759124756,
+  "peak_reserved_gib": 8.787109375
+}

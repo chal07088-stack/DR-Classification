@@ -1,0 +1,56 @@
+{
+  "raw": {
+    "slope": 0.0791587451506865,
+    "cluster_se": 0.007388996442488626,
+    "ci_low": 0.06467631212340878,
+    "ci_high": 0.0936411781779642,
+    "design_rank": 6,
+    "response": "sum(q_fusion)-sum(q_single)",
+    "predictor": "fellow_grade-target_grade",
+    "interpretation": "Descriptive association adjusted for target grade; not causal evidence",
+    "permutation": {
+      "observed_slope": 0.0791587451506865,
+      "null_mean": 0.00027479173832442816,
+      "null_sd": 0.006111706163826845,
+      "p_permutation": 0.000999000999000999,
+      "repeats": 1000,
+      "null_definition": "fellow grade shuffled within target grade; descriptive, not causal"
+    }
+  },
+  "platt": {
+    "slope": 0.0912348546570907,
+    "cluster_se": 0.0075740216448117875,
+    "ci_low": 0.0763897722332596,
+    "ci_high": 0.10607993708092181,
+    "design_rank": 6,
+    "response": "sum(q_fusion)-sum(q_single)",
+    "predictor": "fellow_grade-target_grade",
+    "interpretation": "Descriptive association adjusted for target grade; not causal evidence",
+    "permutation": {
+      "observed_slope": 0.0912348546570907,
+      "null_mean": 0.00015445515004827435,
+      "null_sd": 0.005964160614856681,
+      "p_permutation": 0.000999000999000999,
+      "repeats": 1000,
+      "null_definition": "fellow grade shuffled within target grade; descriptive, not causal"
+    }
+  },
+  "isotonic": {
+    "slope": 0.08711859779322763,
+    "cluster_se": 0.007290650193704188,
+    "ci_low": 0.07282892341356742,
+    "ci_high": 0.10140827217288784,
+    "design_rank": 6,
+    "response": "sum(q_fusion)-sum(q_single)",
+    "predictor": "fellow_grade-target_grade",
+    "interpretation": "Descriptive association adjusted for target grade; not causal evidence",
+    "permutation": {
+      "observed_slope": 0.08711859779322763,
+      "null_mean": 0.0003419889528398426,
+      "null_sd": 0.00608555151459851,
+      "p_permutation": 0.000999000999000999,
+      "repeats": 1000,
+      "null_definition": "fellow grade shuffled within target grade; descriptive, not causal"
+    }
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "job": "oof4_paired_selection",
+  "stage": "training",
+  "epoch": 25,
+  "epochs": 25,
+  "step": 3162,
+  "steps": 3162,
+  "samples": 25290,
+  "updates": 19775,
+  "loss": 0.05913961673470793,
+  "elapsed_seconds": 615.0704716000182,
+  "peak_allocated_gib": 8.741219997406006,
+  "peak_reserved_gib": 8.93359375
+}
