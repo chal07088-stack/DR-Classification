@@ -1,12 +1,121 @@
 # DR-Classification
 
 비대칭 환자에서 양안 융합이 어느 등급 경계를 해치는지 분석하고, 해당 경계만 단안 예측으로 되돌리는 연구 코드입니다.
-현재 버전은 **EyePACS / ConvNeXt-S / seed 42**의 단계별 실행입니다.
-기본 실행은 **PHASE 1A: final expert 두 개와 validation 진단 보고서**에서 반드시 멈춥니다.
-Expert 5-fold OOF와 Teacher A/B gate는 보고서 검토 후 PHASE 1B에서 실행합니다.
+현재 버전은 **EyePACS / ConvNeXt-S / seed 42**의 PHASE 1A·1B 완료 상태입니다.
+PHASE 1A에서 final expert 두 개와 validation 진단을 검토했고, 명시적 승인 후 PHASE 1B에서
+train expert OOF, Teacher A/B gate 및 사전 고정한 A–G 방법의 test 평가를 완료했습니다.
 
-**PHASE 1 실행용 저장소입니다. 완료된 새 본실험 결과는 아직 없습니다.**
-이전 실행의 체크포인트는 head·전처리·학습 방식이 달라 이번 프로토콜에서 재사용하지 않습니다.
+> **현재 상태:** PHASE 1 완료 (`de881d0`). PHASE 2/3은 자동으로 시작하지 않습니다.
+
+## PHASE 1 실험 결과
+
+### 실험 설정과 단계
+
+- 데이터: EyePACS official train 35,126 eyes / validation 10,906 eyes / test 42,670 eyes
+- 단위: 환자 단위 분할, validation gate 5-fold cross-fitting, patient bootstrap 1,000회
+- 공통 모델: ConvNeXt-S, 512px RGB, ordered-CORAL, seed 42
+- PHASE 1A: final single·paired expert 학습 후 validation에서 비대칭 현상과 gate headroom 진단
+- PHASE 1B: train expert OOF 생성, Teacher A/B 분석, validation에서 gate 학습, 고정된 A–G를 test에서 1회 평가
+
+Test를 보기 전에 `G_teacher_b`를 제안 방법으로 고정했습니다. 따라서 아래 A–G는 test 결과를 보고
+유리한 방법을 사후 선택한 목록이 아닙니다.
+
+### PHASE 1A: final expert와 validation 진단
+
+PHASE 1A의 질문은 **“양안 융합이 평균적으로는 유리하지만, 양안 등급 차이가 큰 환자에서는
+해로워지는가?”**였습니다.
+
+| Validation QWK | Single | Paired | Fixed 50:50 |
+| --- | ---: | ---: | ---: |
+| Overall | 0.8339 | **0.8523** | 0.8433 |
+| Gap = 0 | 0.8711 | **0.8961** | 0.8844 |
+| Gap = 1 | 0.7022 | **0.7072** | 0.7062 |
+| Gap >= 1 | **0.6290** | 0.6120 | 0.6229 |
+| Gap >= 2 | **0.5313** | 0.4880 | 0.5153 |
+
+Raw prediction의 paired-minus-single QWK는 overall에서 `+0.0184`
+(95% CI `[+0.0099, +0.0267]`)였지만, Gap >= 2에서는 `-0.0433`
+(95% CI `[-0.0895, -0.0064]`)였습니다. Gap >= 1의 raw CI는 0을 포함했지만,
+Platt·isotonic calibration 후에는 두 비대칭 strata 모두 paired의 열세가 확인되었습니다.
+
+Label-aware 16-mask/625-grid 진단은 학습 모델이 아니라 **회수 가능한 headroom을 확인하는 진단 도구**입니다.
+Raw 기준 291명(322 eyes)이 이산 rollback으로 이득을 보았고, Gap >= 2에서는 57명(61 eyes)의
+평균 squared-error recovery가 0.2891이었습니다. 이 결과는 continuous gate의 상한이나 test 성능이 아닙니다.
+
+Fellow grade가 target grade보다 높을수록 paired prediction이 single보다 높은 쪽으로 이동하는
+grade-adjusted association도 관찰됐습니다(raw slope 0.0792, 95% CI `[0.0647, 0.0936]`,
+permutation `p=0.001`). 이는 **모델의 shrinkage 반응에 대한 기술적 연관성**이며 임상적 인과 증거는 아닙니다.
+
+상세 결과: [PHASE 1A report](experimental_results/phase1_convnext_s_seed42_staged_v1/diagnostics/phase1a/REPORT.md),
+[QWK bootstrap](experimental_results/phase1_convnext_s_seed42_staged_v1/diagnostics/phase1a/qwk_deltas.csv),
+[headroom](experimental_results/phase1_convnext_s_seed42_staged_v1/diagnostics/phase1a/headroom.csv)
+
+### PHASE 1B: Teacher A/B gate와 고정 A–G test
+
+| Arm | 방법 | Overall | Gap >= 1 | Gap >= 2 |
+| --- | --- | ---: | ---: | ---: |
+| A | Target-eye single expert | 0.8298 | **0.6478** | **0.5857** |
+| B | Bilateral paired expert | 0.8462 | 0.6260 | 0.5393 |
+| C | 고정 50:50 single/paired 혼합 | 0.8410 | 0.6439 | 0.5791 |
+| D | 환자별 global rollback weight 하나 | 0.8483 | 0.6347 | 0.5511 |
+| E | Boundary gate를 ordinal task loss로 직접 학습 | **0.8485** | 0.6385 | 0.5623 |
+| F | Teacher A: local BCE loss-guided gate | 0.8465 | 0.6339 | 0.5571 |
+| G | Teacher B: one-boundary counterfactual ordinal gate (proposed) | 0.8481 | 0.6416 | 0.5656 |
+
+Test는 21,335 patients(42,670 eyes)이며 Gap >= 1은 2,678명, Gap >= 2는 889명입니다.
+Single은 paired보다 overall QWK가 0.0165 낮았지만, Gap >= 1에서는 0.0217,
+Gap >= 2에서는 0.0464 높았습니다. 세 patient-bootstrap CI 모두 0을 포함하지 않았습니다.
+즉 **paired fusion은 전체 성능을 높이는 대신 비대칭 환자에서 손실을 지불한다**는 PHASE 1A의
+현상이 독립 test에서도 재현됐습니다.
+
+제안 G는 paired B 대비 다음과 같이 개선됐습니다.
+
+| G minus Paired | QWK delta | Patient-bootstrap 95% CI |
+| --- | ---: | ---: |
+| Overall | +0.00187 | `[+0.00029, +0.00340]` |
+| Gap >= 1 | +0.01557 | `[+0.01068, +0.02068]` |
+| Gap >= 2 | +0.02630 | `[+0.01701, +0.03599]` |
+
+개선 폭은 양안 비대칭이 커질수록 증가했습니다. G의 overall accuracy는 0.8495,
+MAE는 0.1887로 paired의 0.8491/0.1901보다 소폭 개선됐습니다.
+
+![PHASE 1 test QWK by inter-eye grade gap](experimental_results/phase1_convnext_s_seed42_staged_v1/figures/qwk_by_gap.png)
+
+### Teacher A와 Teacher B가 말하는 것
+
+Teacher A는 각 boundary의 single/paired BCE를 비교해 single의 local probability loss가 더 작으면
+rollback target을 부여합니다. Teacher B는 paired의 boundary 하나만 single 값으로 교체한 뒤
+PAVA와 ordinal decoding을 수행하고, **실제 최종 grade squared error가 감소할 때만** rollback utility를 부여합니다.
+
+| Validation active targets | B0 | B1 | B2 | B3 |
+| --- | ---: | ---: | ---: | ---: |
+| Teacher A | 4,354 | 4,460 | 4,552 | 4,747 |
+| Teacher B | 146 | 97 | 65 | 31 |
+
+Teacher B는 최종 grade를 바꾸는 드문 개입만 선택했으며, test에서 F보다 G가 높았습니다:
+overall `+0.0016`, Gap >= 1 `+0.0077`, Gap >= 2 `+0.0085` QWK.
+이는 local probability 비교보다 **최종 ordinal decision을 기준으로 만든 supervision이 더 적합했다**는 근거입니다.
+
+다만 G의 test 평균 alpha는 B0–B3에서 각각 0.0155, 0.0122, 0.0104, 0.0073으로 매우 보수적이었습니다.
+즉 대부분의 경우 paired fusion을 유지하고, 작은 확률 변화가 PAVA/0.5 decoding 경계에 영향을 주는
+일부 사례에서만 성능을 회수했습니다.
+
+### 결론과 해석 범위
+
+PHASE 1은 다음 두 주장을 지지합니다.
+
+1. 양안 융합은 전체적으로 유리하지만 inter-eye grade gap이 커지면 conditional fusion harm이 발생합니다.
+2. One-boundary counterfactual supervision으로 학습한 boundary-wise rollback gate는 paired 대비
+   전체 성능을 보존·개선하면서 비대칭 strata의 손실을 유의하게 완화합니다.
+
+그러나 G가 모든 비교군을 압도한 것은 아닙니다. Overall 최고는 E(0.8485)였고 G(0.8481)와의 차이는 작았습니다.
+비대칭 strata에서는 single과 fixed 50:50이 G보다 높은 구간도 있습니다. 또한 현재 결과는 seed 42 하나이므로
+training-seed 변동, 외부 데이터 일반화 및 다른 backbone에 대한 결론은 PHASE 2/3에서 확인해야 합니다.
+
+전체 결과: [PHASE 1 report](experimental_results/phase1_convnext_s_seed42_staged_v1/REPORT.md),
+[A–G metrics](experimental_results/phase1_convnext_s_seed42_staged_v1/metrics/arm_metrics.csv),
+[bootstrap CI](experimental_results/phase1_convnext_s_seed42_staged_v1/metrics/paired_bootstrap_ci.csv),
+[alpha summary](experimental_results/phase1_convnext_s_seed42_staged_v1/metrics/alpha_summary.csv)
 
 ## 코드 위치
 
@@ -70,13 +179,13 @@ uv run --locked python scripts/run_phase1.py --stage 1a
 Binary 16-mask와 alpha 5값의 625개 조합을 조사하고 환자 bootstrap을 기록합니다.
 두 값은 label-aware 진단이며 **연속 gate의 절대 상한이나 학습 모델 성능이 아닙니다**.
 Raw-feature logistic probe는 local Teacher B의 양의 utility 예측 가능성을 보는 저비용 진단입니다.
-연구용 Teacher B gate 학습은 1B에서 수행합니다.
+완료된 실행에서는 이 검토 뒤 PHASE 1B의 Teacher A/B gate 학습으로 진행했습니다.
 
 결과는 `diagnostics/phase1a/REPORT.md` 및 CSV·JSON·PNG·PDF·NPZ에 저장됩니다.
-보고서를 생성하면 상태는 `awaiting_review`가 되고 프로세스가 종료됩니다.
+1A만 재실행하면 보고서를 생성한 뒤 상태는 `awaiting_review`가 되고 프로세스가 종료됩니다.
 QWK +0.005 같은 자동 합격선은 없습니다. 전체·gap별 효과, 표본 수, calibration과 신뢰구간을 검토합니다.
 
-검토 후 1B를 명시적으로 시작할 때만 아래 명령을 사용합니다.
+1A 검토 후 1B를 명시적으로 재현할 때는 아래 명령을 사용합니다.
 
 ```sh
 uv run --locked python scripts/run_phase1.py --stage 1b --reviewed-1a
@@ -85,7 +194,7 @@ uv run --locked python scripts/run_phase1.py --stage 1b --reviewed-1a
 1B는 expert OOF 10개를 위한 선택 학습 10회와 refit 10회를 추가합니다.
 그 뒤 보존된 final expert의 test 예측, validation-crossfit Teacher A/B gate, A-G 보고서를 생성합니다.
 제안 방법은 G_teacher_b이며 test를 보고 A/B 중 하나를 선택하지 않습니다.
-이번 실행에서는 1B를 자동 시작하지 않습니다.
+완료된 본실험도 이 승인 경계를 지켰으며, 1B가 1A에서 자동 시작되지는 않았습니다.
 
 완료한 job은 같은 코드·config·manifest인 경우 체크포인트를 재사용합니다.
 체크포인트 파일 자체에도 학습/검증 행 구성·config·코드 지문을 저장하고 다르면 로딩을 거부합니다.
