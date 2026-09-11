@@ -131,10 +131,12 @@ def make_report(cfg):
     ax.legend(fontsize=8, loc="upper left", bbox_to_anchor=(1, 1))
     fig.savefig(figures / "qwk_by_gap.png", dpi=200)
     plt.close(fig)
+    phase = cfg["experiment"]["phase"]
+    seed = cfg["experiment"]["seed"]
     lines = [
-        "# PHASE 1 result report",
+        f"# PHASE {phase} result report: seed {seed}",
         "",
-        "ConvNeXt-S, seed 42, patient-level five-fold OOF.",
+        f"ConvNeXt-S, seed {seed}, patient-level five-fold validation cross-fitting.",
         "",
         "Proposed arm fixed before test: G_teacher_b (one-boundary Teacher B).",
         "",
@@ -166,16 +168,20 @@ def make_report(cfg):
         "The 16-mask oracle is a diagnostic discrete policy class, not a learned method or a continuous-gate upper bound.",
         "Locality slopes are descriptive and prevalence-adjusted; they do not prove a causal mechanism.",
         "No external comparator paper has been reproduced by the generic reliability baseline.",
-        "PHASE 1 ends here. PHASE 2/3 require separate decisions.",
+        (
+            "PHASE 1 ends here. PHASE 2/3 require separate decisions."
+            if phase == 1
+            else "This is one PHASE 2 replication seed; interpret it with the multi-seed aggregate."
+        ),
     ]
     (run / "REPORT.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
     save_json(
         run / "completion.json",
         {
-            "phase": 1,
+            "phase": phase,
             "status": "complete",
             "proposed": PROPOSED,
-            "seeds": [42],
+            "seeds": [seed],
             "automatic_next_phase": False,
         },
     )

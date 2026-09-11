@@ -1,0 +1,72 @@
+[experiment]
+phase = 2
+seed = 123
+folds = 5
+run_name = "phase2_convnext_s_seed123_replication_v1"
+
+[data]
+root = "data/eyepacs"
+manifest = "data/splits/eyepacs.csv"
+fold_manifest = "data/splits/folds_seed123.csv"
+results = "experimental_results"
+
+[model]
+arch = "convnext_small.fb_in22k_ft_in1k"
+pretrained = true
+head = "ordered_coral"
+image_size = 512
+fusion_dropout = 0.2
+
+[training]
+epochs = 25
+inner_validation_fraction = 0.1
+single_batch = 16
+paired_batch = 8
+effective_batch = 32
+backbone_lr = 0.00003
+head_lr = 0.0001
+weight_decay = 0.0001
+ema_decay = 0.999
+grad_clip = 1.0
+
+[diagnostics]
+stop_if_both_b3_silent = false
+alpha_grid = [0.0, 0.25, 0.5, 0.75, 1.0]
+calibration_methods = ["raw", "platt", "isotonic"]
+specificity_targets = [0.90, 0.95]
+bootstrap_repeats = 1000
+
+[runtime]
+precision = "bf16"
+workers = 6
+pin_memory = true
+persistent_workers = true
+prefetch_factor = 2
+tf32 = true
+cudnn_benchmark = false
+deterministic = true
+channels_last = true
+memory_limit_gib = 13.0
+cpu_threads = 4
+
+[augmentation]
+horizontal_flip = 0.5
+rotation_degrees = 15.0
+brightness = 0.1
+contrast = 0.1
+
+[gate]
+crossfit_folds = 5
+epochs = 40
+batch = 512
+lr = 0.001
+weight_decay = 0.001
+hidden = 16
+intervention_penalty = 0.01
+rare_boundary_prior = 20.0
+teacher_temperature = 1.0
+
+[evaluation]
+threshold = 0.5
+bootstrap_repeats = 1000
+bootstrap_seed = 42

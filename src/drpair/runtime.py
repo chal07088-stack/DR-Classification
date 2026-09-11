@@ -21,17 +21,23 @@ def load_config(path):
         override = os.environ.get("DRPAIR_" + key.upper())
         p = Path(override or cfg["data"][key])
         cfg["data"][key] = str(p if p.is_absolute() else root / p)
-    if cfg["experiment"]["phase"] != 1 or cfg["experiment"]["seed"] != 42:
-        raise ValueError("This runner is restricted to PHASE 1 / seed 42.")
+    phase = cfg["experiment"]["phase"]
+    seed = cfg["experiment"]["seed"]
+    if phase == 1 and seed != 42:
+        raise ValueError("PHASE 1 is restricted to seed 42.")
+    if phase == 2 and seed not in (123, 128):
+        raise ValueError("PHASE 2 replication seeds are fixed to 123 and 128.")
+    if phase not in (1, 2):
+        raise ValueError("Only PHASE 1 and PHASE 2 are implemented.")
     if cfg["experiment"]["folds"] != 5 or cfg["gate"]["crossfit_folds"] != 5:
-        raise ValueError("PHASE 1 requires five patient folds.")
+        raise ValueError("The locked protocol requires five patient folds.")
     for key in ("single_batch", "paired_batch"):
         if cfg["training"]["effective_batch"] % cfg["training"][key]:
             raise ValueError("Physical batch must divide effective_batch exactly.")
     if cfg["model"]["head"] != "ordered_coral":
-        raise ValueError("PHASE 1 head is ordered_coral.")
+        raise ValueError("The locked protocol head is ordered_coral.")
     if cfg["runtime"]["precision"] != "bf16":
-        raise ValueError("PHASE 1 uses BF16 first, with automatic FP16 fallback.")
+        raise ValueError("The locked protocol uses BF16 first, with automatic FP16 fallback.")
     if "pilot_fraction" in cfg["training"]:
         raise ValueError(
             "Rename pilot_fraction to inner_validation_fraction; it is not subsampling"

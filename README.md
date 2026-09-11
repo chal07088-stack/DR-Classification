@@ -168,6 +168,22 @@ uv run --locked drpair status
 uv run --locked python scripts/run_phase1.py --stage 1a
 ```
 
+PHASE 2A는 PHASE 1의 seed 42에 seed 123·128을 추가하는 locked-protocol 재현성 실험입니다.
+각 seed에서 final single/paired expert와 validation-crossfit gate를 다시 학습한 뒤, 세 seed의
+test QWK를 평균과 표준편차로 집계합니다.
+
+```sh
+uv run --locked python scripts/run_phase2.py
+```
+
+현재 gate는 official validation에서 patient-level cross-fitting하므로 PHASE 2A에서는 train expert OOF를
+반복하지 않습니다. 이 선택은 계산량을 줄이기 위한 사후 생략이 아니라 [PLAN.md](PLAN.md)에 사전 기록된
+프로토콜이며, seed별 final expert·Gate·test prediction은 모두 새로 생성합니다.
+
+RTX 5070 Ti 한 장에서는 각 expert fit이 약 8.8 GiB를 사용하므로 두 GPU 학습을 동시에 실행하지 않습니다.
+Seed 123과 128을 순차 실행해 VRAM 충돌을 막고, 각 학습 내부에서는 DataLoader worker 6개, BF16,
+channels-last, pinned memory와 prefetch를 사용합니다.
+
 1A는 **선택 학습 2회 + 전체 train refit 2회 = 최대 4회 학습**입니다.
 각 expert는 공식 train 내부에서 epoch를 결정하고 전체 train에 refit합니다.
 `inner_validation_fraction=0.1`은 내부 검증 비율입니다. 선택 학습에는 약 90%를 사용합니다.

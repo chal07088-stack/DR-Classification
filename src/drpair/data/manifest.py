@@ -161,6 +161,27 @@ def read_fold_assignment(path, rows, split, seed=42, folds=5):
     return result
 
 
+def prepare_fold_manifest(manifest, fold_output, folds=5, seed=42):
+    """Create patient-disjoint train/validation folds from an existing manifest."""
+    rows = read_manifest(manifest)
+    assignments = []
+    for split in ("train", "val"):
+        subset = [r for r in rows if r["split"] == split]
+        ids = patient_folds(subset, folds, seed)
+        assignments.extend(
+            {
+                "patient": r["patient"],
+                "side": r["side"],
+                "split": split,
+                "fold": int(fold),
+                "seed": seed,
+            }
+            for r, fold in zip(subset, ids)
+        )
+    write_csv(fold_output, assignments)
+    return assignments
+
+
 def prepare(root, output, fold_output, audit_output, folds=5, seed=42, official=True):
     root = Path(root)
     by_key = {}

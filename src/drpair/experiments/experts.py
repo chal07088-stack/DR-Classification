@@ -40,7 +40,13 @@ def run_experts(cfg, jobs, selection_only=False, evaluation_splits=("val",)):
     rows = read_manifest(cfg["data"]["manifest"])
     validate_manifest(rows, cfg["data"]["root"], official=True)
     train = [r for r in rows if r["split"] == "train"]
-    folds = read_fold_assignment(cfg["data"]["fold_manifest"], train, "train")
+    folds = read_fold_assignment(
+        cfg["data"]["fold_manifest"],
+        train,
+        "train",
+        cfg["experiment"]["seed"],
+        cfg["experiment"]["folds"],
+    )
     run = run_directory(cfg)
     if not selection_only:
         save_json(
@@ -181,7 +187,12 @@ def predict_final_experts(cfg, splits=("test",)):
             subset = [r for r in rows if r["split"] == split]
             loader = make_loader(subset, cfg, paired, False, cfg["experiment"]["seed"])
             q = predict(model, loader, device, dtype, paired)
-            save_predictions(run / "predictions" / f"final_{kind}_{split}.npz", subset, q, seed=42)
+            save_predictions(
+                run / "predictions" / f"final_{kind}_{split}.npz",
+                subset,
+                q,
+                seed=cfg["experiment"]["seed"],
+            )
             del loader
         del model
         gc.collect()
@@ -191,7 +202,13 @@ def predict_final_experts(cfg, splits=("test",)):
 def aggregate_oof(cfg):
     run = run_directory(cfg)
     rows = [r for r in read_manifest(cfg["data"]["manifest"]) if r["split"] == "train"]
-    fold_ids = read_fold_assignment(cfg["data"]["fold_manifest"], rows, "train")
+    fold_ids = read_fold_assignment(
+        cfg["data"]["fold_manifest"],
+        rows,
+        "train",
+        cfg["experiment"]["seed"],
+        cfg["experiment"]["folds"],
+    )
     for kind in ("single", "paired"):
         paths = [run / "predictions" / f"oof{f + 1}_{kind}.npz" for f in range(5)]
         if not all(p.exists() for p in paths):

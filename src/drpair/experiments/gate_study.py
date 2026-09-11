@@ -47,13 +47,14 @@ def compute_features(s, f, cfg):
     return gate_features(s["q"], f["q"], fellow, cfg["evaluation"]["threshold"])
 
 
-def run_gate_study(cfg):
+def run_gate_study(cfg, include_expert_oof=True):
     torch.set_num_threads(4)
     run = run_directory(cfg)
     # All supervised gate fitting uses untouched official validation predictions.
     # Train expert-OOF dumps are preserved for independent teacher diagnostics.
     prepared = {}
-    for subset in ("oof", "val"):
+    subsets = ("oof", "val") if include_expert_oof else ("val",)
+    for subset in subsets:
         s_path = (
             run / "predictions" / ("oof_single.npz" if subset == "oof" else "final_single_val.npz")
         )
@@ -106,13 +107,19 @@ def run_gate_study(cfg):
     validation_rows = [
         {"patient": str(p), "side": str(side)} for p, side in zip(s["patient"], s["side"])
     ]
-    folds = read_fold_assignment(cfg["data"]["fold_manifest"], validation_rows, "val")
+    folds = read_fold_assignment(
+        cfg["data"]["fold_manifest"],
+        validation_rows,
+        "val",
+        cfg["experiment"]["seed"],
+        cfg["gate"]["crossfit_folds"],
+    )
     alpha_oof = {}
     crossfit_identity = np.column_stack([s["patient"], s["side"], folds.astype(str)])
     np.savez_compressed(run / "features" / "gate_crossfit_identity.npz", rows=crossfit_identity)
     for arm in LEARNED:
         alpha = np.full_like(s["q"], np.nan)
-        for fold in range(5):
+        for fold in range(cfg["gate"]["crossfit_folds"]):
             train, held = folds != fold, folds == fold
             if set(s["patient"][train]) & set(s["patient"][held]):
                 raise ValueError("Gate cross-fitting patient leakage")
@@ -128,13 +135,22 @@ def run_gate_study(cfg):
                 s["y"][train],
                 targets,
                 cfg["gate"],
-                42,
+                cfg["experiment"]["seed"],
             )
             alpha[held] = infer_arm(arm, model, features[held])
             torch.save(model.state_dict(), run / "gates" / f"{arm}_crossfit{fold}.pt")
             write_csv(run / "logs" / f"{arm}_crossfit{fold}.csv", history)
         alpha_oof[arm] = alpha
-        model, history = fit_arm(arm, features, s["q"], f["q"], s["y"], teachers, cfg["gate"], 42)
+        model, history = fit_arm(
+            arm,
+            features,
+            s["q"],
+            f["q"],
+            s["y"],
+            teachers,
+            cfg["gate"],
+            cfg["experiment"]["seed"],
+        )
         torch.save(model.state_dict(), run / "gates" / f"{arm}_final.pt")
         write_csv(run / "logs" / f"{arm}_final.csv", history)
         # Test is touched only after all model choices for this arm are fixed.
@@ -165,7 +181,11 @@ def run_gate_study(cfg):
             "proposed": PROPOSED,
             "arms": ARMS,
             "fitting_source": "official_validation_with_patient_5fold_crossfitting",
-            "expert_oof_source": "official_train_with_nested_patient_selection_and_refit",
+            "expert_oof_source": (
+                "official_train_with_nested_patient_selection_and_refit"
+                if include_expert_oof
+                else "not_repeated_in_phase2_replication"
+            ),
             "test_labels_used_for_fitting": False,
             "threshold": cfg["evaluation"]["threshold"],
             "feature_names": names,

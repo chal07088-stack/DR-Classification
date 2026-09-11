@@ -5,6 +5,16 @@ import pytest
 from drpair import runtime
 
 
+def test_phase_seed_guards():
+    from pathlib import Path
+
+    phase1 = runtime.load_config(Path(__file__).parents[1] / "configs" / "phase1.toml")
+    assert phase1["experiment"]["seed"] == 42
+    phase2 = runtime.load_config(Path(__file__).parents[1] / "configs" / "phase2_seed123.toml")
+    assert phase2["experiment"]["phase"] == 2
+    assert phase2["experiment"]["seed"] == 123
+
+
 def test_cuda_memory_cap_uses_explicit_device_index(monkeypatch):
     calls = []
     monkeypatch.setattr(runtime, "seed_everything", lambda *args: None)
