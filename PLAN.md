@@ -64,6 +64,27 @@ Requires review of PHASE 1B. These are plans, not implementations or completed e
   strength, not automatically confidence. Include baseline scores and uncertainty intervals.
 - Predefine confirmatory hypotheses and BH/Holm families; disclose exploratory and negative results.
 
+### PHASE 2B-1 locked Huang matched-backbone comparator
+
+The first comparator run after the three-seed review is a controlled adaptation of Huang et al.'s
+paired feature fusion (PFF), not a claim to reproduce the paper's reported ResNet-50 number.
+
+- Reuse each seed's completed single-eye ConvNeXt-S encoder and keep every encoder parameter frozen.
+- Concatenate ordered target/fellow features and adapt the official fusion dimensions proportionally:
+  `2d -> d -> max-pool/2 -> d/4 -> max-pool/2 -> d/8 -> 1`.
+- Match the published/official second-stage optimizer: scalar grade MSE, SGD with momentum 0.9 and
+  Nesterov, weight decay 0.0005, constant learning rate 0.02, batch 64, exactly 20 epochs.
+- Select the checkpoint by official-validation QWK. Access test predictions once after all 20
+  validation evaluations; do not tune the architecture, decoder or optimizer on test.
+- Decode with the official half-integer thresholds and report overall, Gap >= 1 and Gap >= 2 QWK
+  separately for seeds 42, 123 and 128, followed by mean and sample SD.
+- Record the inspected official-code commit and frozen checkpoint SHA-256 values. Keep the original
+  ResNet-50 protocol as a separate future arm so its training changes are not conflated with the
+  matched-backbone comparison.
+
+Calibration/threshold robustness and intervention-penalty analyses follow this comparator and must
+be frozen separately before execution. They are not launched automatically by the Huang runner.
+
 ## PHASE 3: External Data and Encoder Generalization
 
 Requires separate authorization after the earlier results are reviewed.

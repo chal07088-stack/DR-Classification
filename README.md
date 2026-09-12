@@ -207,6 +207,14 @@ test QWK를 평균과 표준편차로 집계합니다.
 uv run --locked python scripts/run_phase2.py
 ```
 
+PHASE 2B-1은 세 seed의 frozen single encoder에 Huang et al.의 paired feature fusion head를
+동일하게 적용하는 matched-backbone 비교입니다. 이는 원 논문의 ResNet-50 수치를 그대로 재현한다고
+주장하지 않으며, 고정된 세부 프로토콜은 [PLAN.md](PLAN.md)에 기록되어 있습니다.
+
+```sh
+uv run --locked python scripts/run_phase2b_huang.py
+```
+
 현재 gate는 official validation에서 patient-level cross-fitting하므로 PHASE 2A에서는 train expert OOF를
 반복하지 않습니다. 이 선택은 계산량을 줄이기 위한 사후 생략이 아니라 [PLAN.md](PLAN.md)에 사전 기록된
 프로토콜이며, seed별 final expert·Gate·test prediction은 모두 새로 생성합니다.
