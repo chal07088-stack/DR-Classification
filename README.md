@@ -1,11 +1,11 @@
 # DR-Classification
 
 비대칭 환자에서 양안 융합이 어느 등급 경계를 해치는지 분석하고, 해당 경계만 단안 예측으로 되돌리는 연구 코드입니다.
-현재 버전은 **EyePACS / ConvNeXt-S / seed 42**의 PHASE 1A·1B 완료 상태입니다.
-PHASE 1A에서 final expert 두 개와 validation 진단을 검토했고, 명시적 승인 후 PHASE 1B에서
-train expert OOF, Teacher A/B gate 및 사전 고정한 A–G 방법의 test 평가를 완료했습니다.
+현재 버전은 **EyePACS / ConvNeXt-S**의 PHASE 1A·1B와 PHASE 2A 다중-seed 재현성 검증 완료 상태입니다.
+PHASE 1에서 final expert, validation 진단, train expert OOF 및 사전 고정한 A–G 방법의 test 평가를
+완료했고, PHASE 2A에서 seed 42·123·128의 final expert와 Gate를 각각 다시 학습했습니다.
 
-> **현재 상태:** PHASE 1 완료 (`de881d0`). PHASE 2/3은 자동으로 시작하지 않습니다.
+> **현재 상태:** PHASE 2A 완료. 외부 비교·추가 분석과 PHASE 3은 자동으로 시작하지 않습니다.
 
 ## PHASE 1 실험 결과
 
@@ -116,6 +116,37 @@ training-seed 변동, 외부 데이터 일반화 및 다른 backbone에 대한 �
 [A–G metrics](experimental_results/phase1_convnext_s_seed42_staged_v1/metrics/arm_metrics.csv),
 [bootstrap CI](experimental_results/phase1_convnext_s_seed42_staged_v1/metrics/paired_bootstrap_ci.csv),
 [alpha summary](experimental_results/phase1_convnext_s_seed42_staged_v1/metrics/alpha_summary.csv)
+
+## PHASE 2A 다중-seed 재현성 결과
+
+PHASE 1에서 고정한 EyePACS / ConvNeXt-S 프로토콜을 변경하지 않고 seed 123과 128을 추가했습니다.
+각 seed에서 final single·paired expert와 validation-crossfit Gate를 새로 학습했으며, 아래 값은
+seed 42·123·128의 test QWK 평균과 표본 표준편차입니다.
+
+| Arm | 방법 | Overall | Gap >= 1 | Gap >= 2 |
+| --- | --- | ---: | ---: | ---: |
+| A | Target-eye single expert | 0.8282 +/- 0.0024 | **0.6463 +/- 0.0043** | **0.5837 +/- 0.0065** |
+| B | Bilateral paired expert | 0.8447 +/- 0.0032 | 0.6254 +/- 0.0091 | 0.5376 +/- 0.0112 |
+| C | 고정 50:50 single/paired 혼합 | 0.8386 +/- 0.0032 | 0.6408 +/- 0.0063 | 0.5722 +/- 0.0097 |
+| D | 환자별 global rollback weight 하나 | 0.8466 +/- 0.0021 | 0.6328 +/- 0.0028 | 0.5474 +/- 0.0035 |
+| E | Boundary gate를 ordinal task loss로 직접 학습 | **0.8479 +/- 0.0024** | 0.6383 +/- 0.0037 | 0.5602 +/- 0.0051 |
+| F | Local BCE loss-guided gate | 0.8447 +/- 0.0032 | 0.6326 +/- 0.0070 | 0.5516 +/- 0.0093 |
+| G | Counterfactual ordinal supervision gate (proposed) | 0.8462 +/- 0.0029 | 0.6394 +/- 0.0058 | 0.5627 +/- 0.0092 |
+
+G는 세 seed 모두 paired B보다 높았습니다. 평균 개선량은 overall `+0.0015`, Gap >= 1
+`+0.0140`, Gap >= 2 `+0.0251` QWK로, 비대칭이 커질수록 rollback의 이점이 증가하는 경향이
+반복됐습니다. G는 local BCE gate F보다도 세 지표에서 평균적으로 높았습니다.
+
+해석에는 한계가 있습니다. Overall 최고는 E였으며 G보다 `0.0017` 높았습니다. G는 학습형
+adaptive 방법 중 비대칭 strata 평균이 가장 높았지만, single A와 fixed 50:50 C가 일부 비대칭
+지표에서 더 높았습니다. 따라서 현재 결과는 **G가 모든 비교군을 압도한다**기보다, paired의
+overall 이점을 대부분 유지하면서 conditional fusion harm을 일관되게 완화한다는 주장을 지지합니다.
+세 seed만으로 방법 간 training-seed 유의성을 확정하지 않으며, patient bootstrap은 각 seed의
+표본 불확실성을 나타낼 뿐 seed 변동을 대체하지 않습니다.
+
+상세 결과: [PHASE 2A aggregate report](experimental_results/phase2_multiseed_v1/REPORT.md),
+[seed별 QWK](experimental_results/phase2_multiseed_v1/metrics/per_seed_qwk.csv),
+[평균 및 표준편차](experimental_results/phase2_multiseed_v1/metrics/multiseed_summary.csv)
 
 ## 코드 위치
 

@@ -1,0 +1,11 @@
+{
+  "phase": 2,
+  "stage": "2a_multiseed",
+  "status": "complete",
+  "proposed": "G_teacher_b",
+  "seeds": [
+    42,
+    123,
+    128
+  ]
+}
