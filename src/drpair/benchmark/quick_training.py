@@ -25,7 +25,15 @@ from torchvision import transforms
 
 from drpair.runtime import file_hash, git_commit, save_json, seed_everything, seed_worker
 
-from .quick_models import ConvNeXtSingle, HuangPaired, HuangSingle, load_huang_encoder
+from .quick_models import (
+    ConvNeXtSingle,
+    DRGCNNPaired,
+    DRGCNNSingle,
+    HuangPaired,
+    HuangSingle,
+    load_drgcnn_encoder,
+    load_huang_encoder,
+)
 
 HUANG_MEAN = [0.425753653049469, 0.29737451672554016, 0.21293757855892181]
 HUANG_STD = [0.27670302987098694, 0.20240527391433716, 0.1686241775751114]
@@ -50,11 +58,12 @@ def _cached_path(cache_root: Path, original_path: str) -> Path:
 
 
 def build_transform(method: str, image_size: int, train: bool):
-    mean, std = (HUANG_MEAN, HUANG_STD) if method.startswith("B1-") else (
+    matched_paper = method.startswith(("B1-", "B2-"))
+    mean, std = (HUANG_MEAN, HUANG_STD) if matched_paper else (
         IMAGENET_MEAN, IMAGENET_STD
     )
     operations: list = []
-    if train and method.startswith("B1-"):
+    if train and matched_paper:
         operations.extend([
             transforms.RandomHorizontalFlip(),
             transforms.RandomVerticalFlip(),
@@ -138,6 +147,16 @@ def build_model(cfg: dict, pretrained: bool, phase_root: Path):
         if not checkpoint.get("complete"):
             raise RuntimeError("B1-S checkpoint is not marked complete")
         return HuangPaired(load_huang_encoder(checkpoint)), True
+    if method == "B2-S":
+        return DRGCNNSingle(pretrained), False
+    if method == "B2-P":
+        checkpoint_path = phase_root / "B2-S" / "best.pt"
+        if not checkpoint_path.is_file():
+            raise FileNotFoundError("B2-P requires completed B2-S checkpoint")
+        checkpoint = torch.load(checkpoint_path, map_location="cpu", weights_only=True)
+        if not checkpoint.get("complete"):
+            raise RuntimeError("B2-S checkpoint is not marked complete")
+        return DRGCNNPaired(load_drgcnn_encoder(checkpoint)), True
     raise ValueError(f"Unsupported Phase 2 method: {method}")
 
 
@@ -326,7 +345,7 @@ def train_method(cfg: dict, phase_root: Path, smoke: bool = False, pretrained: b
         "status": "complete", "method": cfg["method"],
         "reproduction_status": (
             "Protocol-adapted official implementation"
-            if cfg["method"].startswith("B1-") else "Reimplemented baseline"
+            if cfg["method"].startswith(("B1-", "B2-")) else "Reimplemented baseline"
         ),
         "seed": cfg["seed"], "best_epoch": best_epoch, "epochs_completed": epoch,
         "training_seconds": time.perf_counter() - started, "peak_vram_gib": peak_gib,
@@ -357,16 +376,26 @@ def alignment_key(row: dict) -> tuple[str, str]:
     return row["patient_id"], row["target_eye"]
 
 
-def phase2_analysis(phase_root: Path):
+def bilateral_analysis(
+    phase_root: Path,
+    single_method: str,
+    paired_method: str,
+    comparison_name: str,
+    file_prefix: str,
+    report_name: str,
+    report_title: str,
+):
     def load_predictions(method: str):
         path = phase_root / method / "predictions_test.csv"
         with path.open(encoding="utf-8", newline="") as stream:
             rows = list(csv.DictReader(stream))
         return {alignment_key(row): row for row in rows}
 
-    single, paired = load_predictions("B1-S"), load_predictions("B1-P")
+    single, paired = load_predictions(single_method), load_predictions(paired_method)
     if single.keys() != paired.keys():
-        raise RuntimeError("B1-S/B1-P target-eye prediction alignment failed")
+        raise RuntimeError(
+            f"{single_method}/{paired_method} target-eye prediction alignment failed"
+        )
     groups = {"All": [], "gap=0": [], "gap=1": [], "gap>=2": []}
     samples = []
     for key in sorted(single):
@@ -392,38 +421,57 @@ def phase2_analysis(phase_root: Path):
     for group, rows in groups.items():
         counts, n = Counter(row["effect"] for row in rows), len(rows)
         table.append({
-            "Method Pair": "Huang PFF vs Huang Single", "Group": group, "N": n,
+            "Method Pair": comparison_name, "Group": group, "N": n,
             "Benefit count": counts["Benefit"], "Benefit %": 100 * counts["Benefit"] / n,
             "Neutral count": counts["Neutral"], "Neutral %": 100 * counts["Neutral"] / n,
             "Harm count": counts["Harm"], "Harm %": 100 * counts["Harm"] / n,
             "Mean Delta Error": float(np.mean([row["delta_error"] for row in rows])),
             "Median Delta Error": float(np.median([row["delta_error"] for row in rows])),
         })
-    analysis_dir, tables_dir = phase_root.parent / "analysis", phase_root.parent / "tables"
+    results_root = phase_root.parents[1]
+    analysis_dir, tables_dir = results_root / "analysis", results_root / "tables"
     analysis_dir.mkdir(parents=True, exist_ok=True)
     tables_dir.mkdir(parents=True, exist_ok=True)
     for path, rows in (
-        (analysis_dir / "huang_bilateral_benefit_harm_samples.csv", samples),
-        (tables_dir / "phase2_huang_benefit_harm.csv", table),
+        (analysis_dir / f"{file_prefix}_bilateral_benefit_harm_samples.csv", samples),
+        (tables_dir / f"{file_prefix}_benefit_harm.csv", table),
     ):
         with path.open("w", encoding="utf-8", newline="") as stream:
             writer = csv.DictWriter(stream, fieldnames=list(rows[0]))
             writer.writeheader()
             writer.writerows(rows)
-    s_summary = json.loads((phase_root / "B1-S/summary.json").read_text(encoding="utf-8"))
-    p_summary = json.loads((phase_root / "B1-P/summary.json").read_text(encoding="utf-8"))
+    s_summary = json.loads(
+        (phase_root / single_method / "summary.json").read_text(encoding="utf-8")
+    )
+    p_summary = json.loads(
+        (phase_root / paired_method / "summary.json").read_text(encoding="utf-8")
+    )
     delta_qwk = p_summary["test"]["qwk"] - s_summary["test"]["qwk"]
     overall = table[0]
     report = (
-        "# PHASE 2 — Huang controlled pair\n\n"
+        f"# {report_title}\n\n"
         "Prediction alignment: **PASS** (same patient/target-eye keys).\n\n"
-        f"- B1-S test QWK: {s_summary['test']['qwk']:.6f}\n"
-        f"- B1-P test QWK: {p_summary['test']['qwk']:.6f}\n"
-        f"- Delta QWK (B1-P − B1-S): {delta_qwk:+.6f}\n"
+        f"- {single_method} test QWK: {s_summary['test']['qwk']:.6f}\n"
+        f"- {paired_method} test QWK: {p_summary['test']['qwk']:.6f}\n"
+        f"- Delta QWK ({paired_method} − {single_method}): {delta_qwk:+.6f}\n"
         f"- Benefit: {overall['Benefit %']:.2f}%\n"
         f"- Neutral: {overall['Neutral %']:.2f}%\n"
         f"- Harm: {overall['Harm %']:.2f}%\n\n"
         "These are one-seed capped-budget pilot estimates, not definitive superiority claims.\n"
     )
-    (phase_root.parent / "PHASE2_HUANG.md").write_text(report, encoding="utf-8")
+    (results_root / report_name).write_text(report, encoding="utf-8")
     return {"delta_qwk": delta_qwk, "benefit_harm": table}
+
+
+def phase2_analysis(phase_root: Path):
+    return bilateral_analysis(
+        phase_root, "B1-S", "B1-P", "Huang PFF vs Huang Single",
+        "phase2_huang", "PHASE2_HUANG.md", "PHASE 2 — Huang controlled pair",
+    )
+
+
+def phase3_analysis(phase_root: Path):
+    return bilateral_analysis(
+        phase_root, "B2-S", "B2-P", "DRGCNN BFFN vs DRGCNN Single",
+        "phase3_drgcnn", "PHASE3_DRGCNN.md", "PHASE 3 — DRGCNN controlled pair",
+    )

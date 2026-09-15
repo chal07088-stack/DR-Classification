@@ -38,3 +38,15 @@ completed before final handoff to another machine.
   checkpoint edge case was detected and fixed before full training.
 - Full order is fixed as B0, B1-S, then B1-P. B1-P cannot start without a completed
   validation-selected B1-S checkpoint.
+
+## PHASE 3 — implementation prepared, execution gated
+
+- Added B2-S CAM-EfficientNetV2-M and B2-P frozen-encoder BFFN from the official
+  DRGCNN repository at commit `bf80220a5786bf52678519f381b742827447402f`.
+- The public repository says to insert CAM before average pooling but omits the
+  constructor call and `k`. We use `k=3`, inferred from the paper's reported
+  52.88M encoder parameter count; a regression test verifies that count.
+- B2-S is the matched control: same encoder, preprocessing, scalar MSE, SGD, and
+  validation policy, removing only BFFN/fellow-eye input.
+- CPU architecture tests pass. GPU smoke and training remain hard-gated on Phase 2
+  completion.

@@ -1,0 +1,23 @@
+[benchmark]
+method = "B2-S"
+seed = 42
+train_csv = "data/splits/eyepacs_quick20_train.csv"
+val_csv = "data/splits/eyepacs_quick20_val.csv"
+test_csv = "data/splits/eyepacs_quick20_test.csv"
+cache_root = "data/cache/quick20_huang_512"
+image_size = 512
+batch_size = 2
+effective_batch_size = 16
+workers = 4
+max_epochs = 20
+patience = 4
+optimizer = "sgd"
+learning_rate = 0.0005
+momentum = 0.9
+weight_decay = 0.0005
+schedule = "cosine"
+smoke_samples = 4
+official_repository_commit = "bf80220a5786bf52678519f381b742827447402f"
+initialization = "torchvision EfficientNet_V2_M_Weights.IMAGENET1K_V1"
+pretrained_data = "ImageNet-1K; no DR-specific checkpoint"
+cam_interpretation = "CAM before avgpool; k=3 inferred from published 52.88M encoder count"
