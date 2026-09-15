@@ -1,0 +1,9 @@
+{
+  "phase": 2,
+  "status": "smoke_passed",
+  "methods": {
+    "B0": "smoke_passed",
+    "B1-S": "smoke_passed"
+  },
+  "error": "RuntimeError: B1-S produced no valid validation checkpoint"
+}

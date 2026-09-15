@@ -1,0 +1,125 @@
+{
+  "phase": "PHASE 1 - EyePACS data audit",
+  "status": "passed",
+  "seed": 42,
+  "labels_source": "C:\\Users\\use\\Desktop\\pair\\eyepacs_official_raw\\trainLabels.csv",
+  "labels_sha256": "1dd6600d01dd0ff1e42ce840ffa501ae32b346745ff4c4f9296e62a2e9632f88",
+  "labels_schema": [
+    "image",
+    "level"
+  ],
+  "actual_local_total": {
+    "patients": 17563,
+    "images": 35126,
+    "complete_pairs": 17563,
+    "grade_counts": {
+      "0": 25810,
+      "1": 2443,
+      "2": 5292,
+      "3": 873,
+      "4": 708
+    }
+  },
+  "requested_fractions_of_full_patients": {
+    "train": 0.1,
+    "val": 0.03,
+    "test": 0.07
+  },
+  "target_patient_counts": {
+    "train": 1756,
+    "val": 527,
+    "test": 1229
+  },
+  "selected_patient_count": 3512,
+  "selected_image_count": 7024,
+  "splits": {
+    "train": {
+      "patients": 1756,
+      "images": 3512,
+      "left": 1756,
+      "right": 1756,
+      "complete_pairs": 1756,
+      "grade_counts": {
+        "0": 2583,
+        "1": 243,
+        "2": 528,
+        "3": 88,
+        "4": 70
+      },
+      "patient_max_grade_counts": {
+        "0": 1216,
+        "1": 144,
+        "2": 302,
+        "3": 50,
+        "4": 44
+      },
+      "gap_patient_counts": {
+        "gap0": 1533,
+        "gap1": 148,
+        "gap_ge2": 75
+      }
+    },
+    "val": {
+      "patients": 527,
+      "images": 1054,
+      "left": 527,
+      "right": 527,
+      "complete_pairs": 527,
+      "grade_counts": {
+        "0": 774,
+        "1": 73,
+        "2": 160,
+        "3": 26,
+        "4": 21
+      },
+      "patient_max_grade_counts": {
+        "0": 365,
+        "1": 43,
+        "2": 91,
+        "3": 15,
+        "4": 13
+      },
+      "gap_patient_counts": {
+        "gap0": 460,
+        "gap1": 45,
+        "gap_ge2": 22
+      }
+    },
+    "test": {
+      "patients": 1229,
+      "images": 2458,
+      "left": 1229,
+      "right": 1229,
+      "complete_pairs": 1229,
+      "grade_counts": {
+        "0": 1807,
+        "1": 170,
+        "2": 371,
+        "3": 61,
+        "4": 49
+      },
+      "patient_max_grade_counts": {
+        "0": 851,
+        "1": 101,
+        "2": 211,
+        "3": 35,
+        "4": 31
+      },
+      "gap_patient_counts": {
+        "gap0": 1072,
+        "gap1": 104,
+        "gap_ge2": 53
+      }
+    }
+  },
+  "patient_overlap": 0,
+  "image_overlap": 0,
+  "test_subgroup_support": {
+    "gap0_target_eyes": 2144,
+    "gap1_target_eyes": 208,
+    "gap_ge2_target_eyes": 106,
+    "qwk_minimum_target_eyes": 30
+  },
+  "hard_gate_passed": true,
+  "failures": []
+}

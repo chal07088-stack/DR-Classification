@@ -1,0 +1,30 @@
+{
+  "phase": "PHASE 1 - Messidor-2 exact-ID join audit",
+  "status": "blocked",
+  "reason": "Official ADCIS pairing spreadsheet and licensed image archive are not present locally. No pair count was inferred or fabricated.",
+  "pairing_source": "https://www.adcis.net/en/third-party/messidor2/",
+  "grade_source": "https://www.kaggle.com/datasets/google-brain/messidor2-dr-grades",
+  "grade_local_filename": "messidor_data.csv",
+  "grade_sha256": "bb8bbd82eb4bfddc8a0eb9aa45d84274d814e913534f8027f6a4ff0a310fda72",
+  "grade_schema": [
+    "image_id",
+    "adjudicated_dr_grade",
+    "adjudicated_dme",
+    "adjudicated_gradable"
+  ],
+  "grade_annotation_rows": 1748,
+  "gradable_annotation_rows": 1744,
+  "ungradable_annotation_rows": 4,
+  "duplicate_grade_ids": 0,
+  "grade_counts": {
+    "0": 1017,
+    "1": 270,
+    "2": 347,
+    "3": 75,
+    "4": 35
+  },
+  "official_examinations": null,
+  "exact_matched_images": null,
+  "complete_examinations_with_both_eye_grades": null
+}
+
