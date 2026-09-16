@@ -1,0 +1,11 @@
+{
+  "phase": "dataset-balanced joint pilot",
+  "status": "complete",
+  "methods": {
+    "B0": "complete",
+    "B1-S": "complete",
+    "B1-P": "complete",
+    "B2-S": "complete",
+    "B2-P": "complete"
+  }
+}

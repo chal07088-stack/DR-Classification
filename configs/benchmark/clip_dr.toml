@@ -1,0 +1,24 @@
+[benchmark]
+method = "B3"
+seed = 42
+train_csv = "data/splits/eyepacs_quick20_symmetry_train.csv"
+val_csv = "data/splits/eyepacs_quick20_symmetry_val.csv"
+test_csv = "data/splits/eyepacs_quick20_symmetry_test.csv"
+cache_root = "data/cache/quick20_huang_512"
+image_size = 224
+batch_size = 16
+effective_batch_size = 64
+workers = 4
+max_epochs = 20
+patience = 4
+optimizer = "radam"
+learning_rate = 0.0001
+momentum = 0.9
+weight_decay = 0.0
+schedule = "constant"
+smoke_samples = 16
+official_repository_commit = "ca7d88c44f13d0e77bea4b0c2381b51deb75d3c1"
+initialization = "OpenAI CLIP RN50 at pinned package commit d05afc4"
+pretrained_data = "generic CLIP pretraining; no DR-specific checkpoint"
+loss = "CE + class-wise similarity smoothing KL + bidirectional ordinal rank"
+adaptation = "PyTorch 2.11 loop replaces incompatible Lightning 1.6 runner"

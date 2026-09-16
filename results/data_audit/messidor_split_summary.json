@@ -1,0 +1,145 @@
+{
+  "phase": "PHASE 1 - Messidor-2 in-domain split audit",
+  "status": "passed",
+  "split_version": "messidor_complete_pairs_70_15_15_v1",
+  "seed": 42,
+  "complete_pair_source": "C:\\Users\\use\\Desktop\\DR-Classification\\results\\data_audit\\messidor_complete_pairs.csv",
+  "complete_pair_sha256": "101e1e072b001a9b632fc60dc8c6b3f82d30d8633ee3a54ccc0cc3632be6706b",
+  "image_root": "C:\\Users\\use\\Desktop\\messidor\\IMAGES",
+  "target_fractions": {
+    "train": 0.7,
+    "val": 0.15,
+    "test": 0.15
+  },
+  "target_patient_counts": {
+    "train": 609,
+    "val": 131,
+    "test": 130
+  },
+  "splits": {
+    "full": {
+      "patients": 870,
+      "images": 1740,
+      "left": 870,
+      "right": 870,
+      "complete_pairs": 870,
+      "symmetric_patients": 663,
+      "asymmetric_patients": 207,
+      "symmetric_rate": 0.7620689655172413,
+      "asymmetric_rate": 0.23793103448275862,
+      "grade_counts": {
+        "0": 1013,
+        "1": 270,
+        "2": 347,
+        "3": 75,
+        "4": 35
+      },
+      "patient_max_grade_counts": {
+        "0": 447,
+        "1": 155,
+        "2": 197,
+        "3": 50,
+        "4": 21
+      },
+      "gap_patient_counts": {
+        "gap0": 663,
+        "gap1": 178,
+        "gap_ge2": 29
+      }
+    },
+    "train": {
+      "patients": 609,
+      "images": 1218,
+      "left": 609,
+      "right": 609,
+      "complete_pairs": 609,
+      "symmetric_patients": 464,
+      "asymmetric_patients": 145,
+      "symmetric_rate": 0.7619047619047619,
+      "asymmetric_rate": 0.23809523809523808,
+      "grade_counts": {
+        "0": 709,
+        "1": 188,
+        "2": 244,
+        "3": 52,
+        "4": 25
+      },
+      "patient_max_grade_counts": {
+        "0": 313,
+        "1": 108,
+        "2": 138,
+        "3": 35,
+        "4": 15
+      },
+      "gap_patient_counts": {
+        "gap0": 464,
+        "gap1": 125,
+        "gap_ge2": 20
+      }
+    },
+    "val": {
+      "patients": 131,
+      "images": 262,
+      "left": 131,
+      "right": 131,
+      "complete_pairs": 131,
+      "symmetric_patients": 100,
+      "asymmetric_patients": 31,
+      "symmetric_rate": 0.7633587786259542,
+      "asymmetric_rate": 0.2366412213740458,
+      "grade_counts": {
+        "0": 152,
+        "1": 40,
+        "2": 53,
+        "3": 12,
+        "4": 5
+      },
+      "patient_max_grade_counts": {
+        "0": 67,
+        "1": 23,
+        "2": 30,
+        "3": 8,
+        "4": 3
+      },
+      "gap_patient_counts": {
+        "gap0": 100,
+        "gap1": 26,
+        "gap_ge2": 5
+      }
+    },
+    "test": {
+      "patients": 130,
+      "images": 260,
+      "left": 130,
+      "right": 130,
+      "complete_pairs": 130,
+      "symmetric_patients": 99,
+      "asymmetric_patients": 31,
+      "symmetric_rate": 0.7615384615384615,
+      "asymmetric_rate": 0.23846153846153847,
+      "grade_counts": {
+        "0": 152,
+        "1": 42,
+        "2": 50,
+        "3": 11,
+        "4": 5
+      },
+      "patient_max_grade_counts": {
+        "0": 67,
+        "1": 24,
+        "2": 29,
+        "3": 7,
+        "4": 3
+      },
+      "gap_patient_counts": {
+        "gap0": 99,
+        "gap1": 27,
+        "gap_ge2": 4
+      }
+    }
+  },
+  "patient_overlap": 0,
+  "image_overlap": 0,
+  "hard_gate_passed": true,
+  "failures": []
+}

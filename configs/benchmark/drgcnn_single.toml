@@ -1,9 +1,9 @@
 [benchmark]
 method = "B2-S"
 seed = 42
-train_csv = "data/splits/eyepacs_quick20_train.csv"
-val_csv = "data/splits/eyepacs_quick20_val.csv"
-test_csv = "data/splits/eyepacs_quick20_test.csv"
+train_csv = "data/splits/eyepacs_quick20_symmetry_train.csv"
+val_csv = "data/splits/eyepacs_quick20_symmetry_val.csv"
+test_csv = "data/splits/eyepacs_quick20_symmetry_test.csv"
 cache_root = "data/cache/quick20_huang_512"
 image_size = 512
 batch_size = 2

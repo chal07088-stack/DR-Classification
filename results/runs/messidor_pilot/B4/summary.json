@@ -1,0 +1,131 @@
+{
+  "status": "complete",
+  "method": "B4",
+  "reproduction_status": "Protocol-adapted official implementation",
+  "seed": 42,
+  "best_epoch": 2,
+  "epochs_completed": 6,
+  "training_seconds": 187.8061723000137,
+  "peak_vram_gib": 4.123046875,
+  "gpu": "NVIDIA GeForce RTX 5070 Ti",
+  "validation_qwk": 0.029054930890024977,
+  "test": {
+    "n_eyes": 260,
+    "accuracy": 0.17307692307692307,
+    "macro_f1": 0.13327926982107796,
+    "mae": 1.6,
+    "qwk": -0.021409921671018184,
+    "confusion_matrix": [
+      [
+        17,
+        33,
+        57,
+        31,
+        14
+      ],
+      [
+        3,
+        7,
+        21,
+        9,
+        2
+      ],
+      [
+        5,
+        12,
+        18,
+        7,
+        8
+      ],
+      [
+        1,
+        3,
+        4,
+        3,
+        0
+      ],
+      [
+        0,
+        4,
+        1,
+        0,
+        0
+      ]
+    ],
+    "per_class": {
+      "0": {
+        "precision": 0.6538461538461539,
+        "recall": 0.1118421052631579,
+        "f1-score": 0.19101123595505617,
+        "support": 152.0
+      },
+      "1": {
+        "precision": 0.11864406779661017,
+        "recall": 0.16666666666666666,
+        "f1-score": 0.13861386138613863,
+        "support": 42.0
+      },
+      "2": {
+        "precision": 0.1782178217821782,
+        "recall": 0.36,
+        "f1-score": 0.23841059602649006,
+        "support": 50.0
+      },
+      "3": {
+        "precision": 0.06,
+        "recall": 0.2727272727272727,
+        "f1-score": 0.09836065573770492,
+        "support": 11.0
+      },
+      "4": {
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1-score": 0.0,
+        "support": 5.0
+      },
+      "accuracy": 0.17307692307692307,
+      "macro avg": {
+        "precision": 0.20214160868498846,
+        "recall": 0.18224720893141946,
+        "f1-score": 0.13327926982107796,
+        "support": 260.0
+      },
+      "weighted avg": {
+        "precision": 0.43822522046608436,
+        "recall": 0.17307692307692307,
+        "f1-score": 0.184069180991637,
+        "support": 260.0
+      }
+    }
+  },
+  "prediction_sha256": "b3ce371a7ec52aa387d138816e1cc2e4148706e4590eda998cbf21e35b2b013d",
+  "git_commit_at_run": "edc0a3a42d6b83e1cf7b870dc647d999d0368301",
+  "config": {
+    "method": "B4",
+    "seed": 42,
+    "train_csv": "C:\\Users\\use\\Desktop\\DR-Classification\\data\\splits\\messidor_train.csv",
+    "val_csv": "C:\\Users\\use\\Desktop\\DR-Classification\\data\\splits\\messidor_val.csv",
+    "test_csv": "C:\\Users\\use\\Desktop\\DR-Classification\\data\\splits\\messidor_test.csv",
+    "cache_root": "C:\\Users\\use\\Desktop\\DR-Classification\\data\\cache\\messidor_huang_512",
+    "image_size": 224,
+    "batch_size": 4,
+    "effective_batch_size": 32,
+    "workers": 4,
+    "max_epochs": 20,
+    "patience": 4,
+    "optimizer": "adamw",
+    "learning_rate": 0.0001,
+    "momentum": 0.9,
+    "weight_decay": 0.0,
+    "schedule": "reduce_on_plateau",
+    "scheduler_patience": 50,
+    "smoke_samples": 4,
+    "diffusion_batch_mul": 4,
+    "sampling_steps": 20,
+    "official_repository_commit": "4b67c6892e0035829ec3719a8a15e3371654a5a4",
+    "initialization": "timm ViT-B/16 ImageNet pretrained",
+    "pretrained_data": "ImageNet; no RETFound or DR-specific checkpoint",
+    "adaptation": "20 vs official 100 diffusion sampling steps; max 20 vs 300 epochs",
+    "dataset_name": "Messidor-2"
+  }
+}

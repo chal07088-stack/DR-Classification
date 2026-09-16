@@ -20,11 +20,12 @@ from sklearn.metrics import (
     mean_absolute_error,
 )
 from torch import nn
-from torch.utils.data import DataLoader, Dataset
+from torch.utils.data import DataLoader, Dataset, WeightedRandomSampler
 from torchvision import transforms
 
 from drpair.runtime import file_hash, git_commit, save_json, seed_everything, seed_worker
 
+from .clip_dr import CLIPDR, clip_dr_loss
 from .quick_models import (
     ConvNeXtSingle,
     DRGCNNPaired,
@@ -76,6 +77,16 @@ def build_transform(method: str, image_size: int, train: bool):
                 interpolation=transforms.InterpolationMode.BILINEAR,
             ),
         ])
+    elif train and method == "B3":
+        operations.extend([
+            transforms.RandomResizedCrop(image_size, antialias=True),
+            transforms.RandomHorizontalFlip(),
+        ])
+    elif train and method == "B4":
+        operations.extend([
+            transforms.Resize((image_size, image_size), antialias=True),
+            transforms.RandomHorizontalFlip(),
+        ])
     elif train:
         operations.extend([
             transforms.RandomResizedCrop(image_size, scale=(0.8, 1.0), antialias=True),
@@ -90,16 +101,19 @@ def build_transform(method: str, image_size: int, train: bool):
 
 class QuickEyeDataset(Dataset):
     def __init__(self, rows: list[dict], cache_root: Path, transform, paired: bool):
-        self.rows, self.cache_root = rows, Path(cache_root)
+        self.rows = rows
+        roots = cache_root if isinstance(cache_root, (list, tuple)) else [cache_root]
+        self.cache_roots = [Path(root) for root in roots]
         self.transform, self.paired = transform, paired
 
     def __len__(self):
         return len(self.rows)
 
     def _load(self, path: str):
-        cached = _cached_path(self.cache_root, path)
-        if not cached.is_file():
-            raise FileNotFoundError(f"Preprocessed image missing: {cached}")
+        candidates = [_cached_path(root, path) for root in self.cache_roots]
+        cached = next((candidate for candidate in candidates if candidate.is_file()), None)
+        if cached is None:
+            raise FileNotFoundError(f"Preprocessed image missing: {candidates}")
         with Image.open(cached) as source:
             return self.transform(source.convert("RGB"))
 
@@ -118,7 +132,7 @@ class QuickEyeDataset(Dataset):
 def make_loader(rows, cfg, train: bool, paired: bool, smoke: bool = False):
     selected = rows[: min(len(rows), cfg["smoke_samples"])] if smoke else rows
     dataset = QuickEyeDataset(
-        selected, Path(cfg["cache_root"]),
+        selected, cfg.get("cache_roots", [cfg["cache_root"]]),
         build_transform(cfg["method"], cfg["image_size"], train), paired,
     )
     workers = 0 if smoke else cfg["workers"]
@@ -128,6 +142,11 @@ def make_loader(rows, cfg, train: bool, paired: bool, smoke: bool = False):
         "pin_memory": torch.cuda.is_available(), "worker_init_fn": seed_worker,
         "generator": torch.Generator().manual_seed(cfg["seed"]), "drop_last": False,
     }
+    if train and cfg.get("dataset_balanced", False):
+        counts = Counter(row["dataset"] for row in selected)
+        weights = torch.as_tensor([1.0 / counts[row["dataset"]] for row in selected], dtype=torch.double)
+        options["shuffle"] = False
+        options["sampler"] = WeightedRandomSampler(weights, len(selected), replacement=True)
     if workers:
         options.update(persistent_workers=True, prefetch_factor=2)
     return DataLoader(dataset, **options)
@@ -157,11 +176,17 @@ def build_model(cfg: dict, pretrained: bool, phase_root: Path):
         if not checkpoint.get("complete"):
             raise RuntimeError("B2-S checkpoint is not marked complete")
         return DRGCNNPaired(load_drgcnn_encoder(checkpoint)), True
+    if method == "B3":
+        return CLIPDR(pretrained), False
     raise ValueError(f"Unsupported Phase 2 method: {method}")
 
 
 def _decode(method: str, output: torch.Tensor) -> torch.Tensor:
-    return output.argmax(dim=1) if method == "B0" else output.round().clamp(0, 4).long()
+    return (
+        output.argmax(dim=1)
+        if method in {"B0", "B3"}
+        else output.round().clamp(0, 4).long()
+    )
 
 
 def calculate_metrics(y_true, y_pred):
@@ -207,6 +232,10 @@ def _optimizer(model: nn.Module, cfg: dict):
         return torch.optim.SGD(
             parameters, lr=cfg["learning_rate"], momentum=cfg["momentum"],
             nesterov=True, weight_decay=cfg["weight_decay"],
+        )
+    if cfg["optimizer"] == "radam":
+        return torch.optim.RAdam(
+            parameters, lr=cfg["learning_rate"], weight_decay=cfg["weight_decay"]
         )
     return torch.optim.AdamW(
         parameters, lr=cfg["learning_rate"], weight_decay=cfg["weight_decay"]
@@ -262,11 +291,12 @@ def train_method(cfg: dict, phase_root: Path, smoke: bool = False, pretrained: b
                 device_type=device.type, dtype=amp_dtype, enabled=device.type == "cuda"
             ):
                 output = model(target, fellow)
-                loss = (
-                    nn.functional.cross_entropy(output.float(), label)
-                    if cfg["method"] == "B0"
-                    else nn.functional.mse_loss(output.float(), label.float())
-                )
+                if cfg["method"] == "B3":
+                    loss, _ = clip_dr_loss(output.float(), label)
+                elif cfg["method"] == "B0":
+                    loss = nn.functional.cross_entropy(output.float(), label)
+                else:
+                    loss = nn.functional.mse_loss(output.float(), label.float())
             scaler.scale(loss / accumulation).backward()
             running_loss += float(loss.detach()) * len(label)
             seen += len(label)
@@ -335,17 +365,18 @@ def train_method(cfg: dict, phase_root: Path, smoke: bool = False, pretrained: b
                 "patient_id": row["patient_id"], "target_eye": row["target_eye"],
                 "fellow_eye": row["fellow_eye"] if paired else "",
                 "target_grade": label, "fellow_grade": row["fellow_grade"],
-                "predicted_grade": prediction, "dataset": "EyePACS", "split": "test",
+                "predicted_grade": prediction, "dataset": cfg.get("dataset_name", "EyePACS"), "split": "test",
                 "method": cfg["method"],
-                "native_score": output if cfg["method"] != "B0" else "",
-                "native_logits": json.dumps(output) if cfg["method"] == "B0" else "",
+                "native_score": output if cfg["method"] not in {"B0", "B3"} else "",
+                "native_logits": json.dumps(output) if cfg["method"] in {"B0", "B3"} else "",
                 "native_output_type": model.output_type,
             })
     summary = {
         "status": "complete", "method": cfg["method"],
         "reproduction_status": (
             "Protocol-adapted official implementation"
-            if cfg["method"].startswith(("B1-", "B2-")) else "Reimplemented baseline"
+            if cfg["method"].startswith(("B1-", "B2-")) or cfg["method"] == "B3"
+            else "Reimplemented from paper"
         ),
         "seed": cfg["seed"], "best_epoch": best_epoch, "epochs_completed": epoch,
         "training_seconds": time.perf_counter() - started, "peak_vram_gib": peak_gib,

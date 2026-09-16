@@ -1,0 +1,132 @@
+{
+  "status": "complete",
+  "method": "B2-P",
+  "reproduction_status": "Protocol-adapted official implementation",
+  "seed": 42,
+  "best_epoch": 13,
+  "epochs_completed": 17,
+  "training_seconds": 810.6995802999882,
+  "peak_vram_gib": 4.123046875,
+  "gpu": "NVIDIA GeForce RTX 5070 Ti",
+  "validation_qwk": 0.5897905216968273,
+  "test": {
+    "n_eyes": 2718,
+    "accuracy": 0.6184694628403238,
+    "macro_f1": 0.37572607670565,
+    "mae": 0.4753495217071376,
+    "qwk": 0.593179211773691,
+    "confusion_matrix": [
+      [
+        1457,
+        443,
+        47,
+        10,
+        0
+      ],
+      [
+        104,
+        98,
+        9,
+        1,
+        0
+      ],
+      [
+        117,
+        171,
+        91,
+        31,
+        12
+      ],
+      [
+        3,
+        11,
+        24,
+        23,
+        12
+      ],
+      [
+        1,
+        9,
+        20,
+        12,
+        12
+      ]
+    ],
+    "per_class": {
+      "0": {
+        "precision": 0.866230677764566,
+        "recall": 0.7445068983137455,
+        "f1-score": 0.800769442154438,
+        "support": 1957.0
+      },
+      "1": {
+        "precision": 0.13387978142076504,
+        "recall": 0.46226415094339623,
+        "f1-score": 0.2076271186440678,
+        "support": 212.0
+      },
+      "2": {
+        "precision": 0.47643979057591623,
+        "recall": 0.2156398104265403,
+        "f1-score": 0.2969004893964111,
+        "support": 422.0
+      },
+      "3": {
+        "precision": 0.2987012987012987,
+        "recall": 0.3150684931506849,
+        "f1-score": 0.30666666666666664,
+        "support": 73.0
+      },
+      "4": {
+        "precision": 0.3333333333333333,
+        "recall": 0.2222222222222222,
+        "f1-score": 0.26666666666666666,
+        "support": 54.0
+      },
+      "accuracy": 0.6184694628403238,
+      "macro avg": {
+        "precision": 0.4217169763591759,
+        "recall": 0.39194031501131776,
+        "f1-score": 0.37572607670565,
+        "support": 2718.0
+      },
+      "weighted avg": {
+        "precision": 0.722758917025272,
+        "recall": 0.6184694628403238,
+        "f1-score": 0.6523919869907027,
+        "support": 2718.0
+      }
+    }
+  },
+  "prediction_sha256": "ffc9916d26c586bea2ace23fba61a11303ed1e6040464e7b74ce3dc5bd66bbd9",
+  "git_commit_at_run": "edc0a3a42d6b83e1cf7b870dc647d999d0368301",
+  "config": {
+    "method": "B2-P",
+    "seed": 42,
+    "train_csv": "C:\\Users\\use\\Desktop\\DR-Classification\\data\\splits\\joint_eyepacs_messidor_train.csv",
+    "val_csv": "C:\\Users\\use\\Desktop\\DR-Classification\\data\\splits\\joint_eyepacs_messidor_val.csv",
+    "test_csv": "C:\\Users\\use\\Desktop\\DR-Classification\\data\\splits\\joint_eyepacs_messidor_test.csv",
+    "cache_root": "C:\\Users\\use\\Desktop\\DR-Classification\\data\\cache\\quick20_huang_512",
+    "image_size": 512,
+    "batch_size": 8,
+    "effective_batch_size": 16,
+    "workers": 4,
+    "max_epochs": 20,
+    "patience": 4,
+    "optimizer": "sgd",
+    "learning_rate": 0.02,
+    "momentum": 0.9,
+    "weight_decay": 0.0005,
+    "schedule": "constant",
+    "smoke_samples": 8,
+    "official_repository_commit": "bf80220a5786bf52678519f381b742827447402f",
+    "initialization": "selected B2-S ImageNet-initialized CAM encoder; encoder frozen",
+    "pretrained_data": "ImageNet-1K plus Quick20 train-only B2-S; no DR checkpoint",
+    "cache_roots": [
+      "C:\\Users\\use\\Desktop\\DR-Classification\\data\\cache\\quick20_huang_512",
+      "C:\\Users\\use\\Desktop\\DR-Classification\\data\\cache\\messidor_huang_512"
+    ],
+    "dataset_name": "Joint EyePACS+Messidor-2",
+    "dataset_balanced": true
+  }
+}

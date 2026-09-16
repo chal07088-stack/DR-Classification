@@ -11,6 +11,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
+from drpair.benchmark.eyepacs import SPLIT_VERSION, require_phase1_hard_gate
 from drpair.benchmark.quick_training import load_toml_config, phase2_analysis, train_method
 from drpair.runtime import save_json
 
@@ -26,11 +27,21 @@ def main():
     parser.add_argument("--smoke", action="store_true")
     parser.add_argument("--method", choices=list(CONFIGS))
     parser.add_argument("--no-pretrained", action="store_true")
+    parser.add_argument("--eyepacs-only-provisional", action="store_true")
     args = parser.parse_args()
-    phase_root = ROOT / "results/runs/phase2"
-    status_path = ROOT / "results/phase2_status.json"
+    phase1 = require_phase1_hard_gate(
+        ROOT, allow_eyepacs_only_provisional=args.eyepacs_only_provisional
+    )
+    phase_root = ROOT / f"results/runs/phase2_{SPLIT_VERSION}"
+    status_path = ROOT / f"results/phase2_{SPLIT_VERSION}_status.json"
     methods = [args.method] if args.method else list(CONFIGS)
-    state = {"phase": 2, "status": "running", "methods": {}}
+    state = {
+        "phase": 2,
+        "split_version": SPLIT_VERSION,
+        "scope": phase1.get("scope", "DUAL_DATASET_BENCHMARK"),
+        "status": "running",
+        "methods": {},
+    }
     if status_path.exists():
         state = json.loads(status_path.read_text(encoding="utf-8"))
         state["status"] = "running"

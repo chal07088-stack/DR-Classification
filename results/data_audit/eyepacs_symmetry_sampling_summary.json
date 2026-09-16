@@ -1,0 +1,196 @@
+{
+  "phase": "PHASE 1 - EyePACS data audit",
+  "status": "passed",
+  "split_version": "quick20_symmetry_preserved_v2",
+  "sampling_method": "symmetry-preserving patient-level stratified sample",
+  "seed": 42,
+  "labels_source": "C:\\Users\\use\\Desktop\\pair\\eyepacs_official_raw\\trainLabels.csv",
+  "labels_sha256": "1dd6600d01dd0ff1e42ce840ffa501ae32b346745ff4c4f9296e62a2e9632f88",
+  "labels_schema": [
+    "image",
+    "level"
+  ],
+  "actual_local_total": {
+    "patients": 17563,
+    "images": 35126,
+    "complete_pairs": 17563,
+    "grade_counts": {
+      "0": 25810,
+      "1": 2443,
+      "2": 5292,
+      "3": 873,
+      "4": 708
+    },
+    "symmetric_patients": 15323,
+    "asymmetric_patients": 2240,
+    "symmetric_rate": 0.8724591470705461,
+    "asymmetric_rate": 0.12754085292945397,
+    "gap_patient_counts": {
+      "gap0": 15323,
+      "gap1": 1485,
+      "gap_ge2": 755
+    }
+  },
+  "requested_fractions_of_full_patients": {
+    "train": 0.1,
+    "val": 0.03,
+    "test": 0.07
+  },
+  "active_split_files": {
+    "train": {
+      "path": "data/splits/eyepacs_quick20_symmetry_train.csv",
+      "sha256": "0dfd15602ef1350adcd22b79c9143e02b31ee7415aa8b2760ed362f34ef5ec71"
+    },
+    "val": {
+      "path": "data/splits/eyepacs_quick20_symmetry_val.csv",
+      "sha256": "377b00d6ae72441160d2cf43245a6486d60ebcaa5848377f7d65ca4555dabd19"
+    },
+    "test": {
+      "path": "data/splits/eyepacs_quick20_symmetry_test.csv",
+      "sha256": "036e20a3f023da462bfa824f3305c7c47f1ae8bf5e1b433050515329e55ec93b"
+    },
+    "patients": {
+      "path": "data/splits/eyepacs_quick20_symmetry_patients.csv",
+      "sha256": "6bfd97a3ad32feb725699789cef25f2e3934fcf5cf8184bece9b8fb6115b8ec4"
+    }
+  },
+  "target_patient_counts": {
+    "train": 1756,
+    "val": 527,
+    "test": 1229
+  },
+  "selected_patient_count": 3512,
+  "selected_image_count": 7024,
+  "splits": {
+    "train": {
+      "patients": 1756,
+      "images": 3512,
+      "left": 1756,
+      "right": 1756,
+      "complete_pairs": 1756,
+      "symmetric_patients": 1532,
+      "asymmetric_patients": 224,
+      "symmetric_rate": 0.8724373576309795,
+      "asymmetric_rate": 0.1275626423690205,
+      "grade_counts": {
+        "0": 2580,
+        "1": 244,
+        "2": 530,
+        "3": 88,
+        "4": 70
+      },
+      "patient_max_grade_counts": {
+        "0": 1215,
+        "1": 145,
+        "2": 302,
+        "3": 50,
+        "4": 44
+      },
+      "gap_patient_counts": {
+        "gap0": 1532,
+        "gap1": 150,
+        "gap_ge2": 74
+      }
+    },
+    "val": {
+      "patients": 527,
+      "images": 1054,
+      "left": 527,
+      "right": 527,
+      "complete_pairs": 527,
+      "symmetric_patients": 460,
+      "asymmetric_patients": 67,
+      "symmetric_rate": 0.872865275142315,
+      "asymmetric_rate": 0.127134724857685,
+      "grade_counts": {
+        "0": 774,
+        "1": 73,
+        "2": 160,
+        "3": 26,
+        "4": 21
+      },
+      "patient_max_grade_counts": {
+        "0": 365,
+        "1": 43,
+        "2": 91,
+        "3": 15,
+        "4": 13
+      },
+      "gap_patient_counts": {
+        "gap0": 460,
+        "gap1": 45,
+        "gap_ge2": 22
+      }
+    },
+    "test": {
+      "patients": 1229,
+      "images": 2458,
+      "left": 1229,
+      "right": 1229,
+      "complete_pairs": 1229,
+      "symmetric_patients": 1072,
+      "asymmetric_patients": 157,
+      "symmetric_rate": 0.8722538649308381,
+      "asymmetric_rate": 0.1277461350691619,
+      "grade_counts": {
+        "0": 1805,
+        "1": 170,
+        "2": 372,
+        "3": 62,
+        "4": 49
+      },
+      "patient_max_grade_counts": {
+        "0": 850,
+        "1": 100,
+        "2": 213,
+        "3": 35,
+        "4": 31
+      },
+      "gap_patient_counts": {
+        "gap0": 1072,
+        "gap1": 104,
+        "gap_ge2": 53
+      }
+    },
+    "quick20": {
+      "patients": 3512,
+      "images": 7024,
+      "left": 3512,
+      "right": 3512,
+      "complete_pairs": 3512,
+      "symmetric_patients": 3064,
+      "asymmetric_patients": 448,
+      "symmetric_rate": 0.8724373576309795,
+      "asymmetric_rate": 0.1275626423690205,
+      "grade_counts": {
+        "0": 5159,
+        "1": 487,
+        "2": 1062,
+        "3": 176,
+        "4": 140
+      },
+      "patient_max_grade_counts": {
+        "0": 2430,
+        "1": 288,
+        "2": 606,
+        "3": 100,
+        "4": 88
+      },
+      "gap_patient_counts": {
+        "gap0": 3064,
+        "gap1": 299,
+        "gap_ge2": 149
+      }
+    }
+  },
+  "patient_overlap": 0,
+  "image_overlap": 0,
+  "test_subgroup_support": {
+    "gap0_target_eyes": 2144,
+    "gap1_target_eyes": 208,
+    "gap_ge2_target_eyes": 106,
+    "qwk_minimum_target_eyes": 30
+  },
+  "hard_gate_passed": true,
+  "failures": []
+}

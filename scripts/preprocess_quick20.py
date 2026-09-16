@@ -53,9 +53,9 @@ def convert(job):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--splits", nargs="+", default=[
-        "data/splits/eyepacs_quick20_train.csv",
-        "data/splits/eyepacs_quick20_val.csv",
-        "data/splits/eyepacs_quick20_test.csv",
+        "data/splits/eyepacs_quick20_symmetry_train.csv",
+        "data/splits/eyepacs_quick20_symmetry_val.csv",
+        "data/splits/eyepacs_quick20_symmetry_test.csv",
     ])
     parser.add_argument("--output", default="data/cache/quick20_huang_512")
     parser.add_argument("--size", type=int, default=512)

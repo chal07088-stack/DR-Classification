@@ -14,6 +14,7 @@ def main():
     parser.add_argument("--left-column", required=True)
     parser.add_argument("--right-column", required=True)
     parser.add_argument("--examination-column")
+    parser.add_argument("--image-root", type=Path, required=True)
     parser.add_argument("--output", type=Path, default=Path("results/data_audit"))
     args = parser.parse_args()
     result = audit_messidor_pairing(
@@ -23,10 +24,10 @@ def main():
         args.left_column,
         args.right_column,
         args.examination_column,
+        args.image_root,
     )
     print(json.dumps(result, indent=2, ensure_ascii=False))
 
 
 if __name__ == "__main__":
     main()
-

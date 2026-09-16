@@ -1,0 +1,67 @@
+{
+  "phase": 3,
+  "split_version": "quick20_symmetry_preserved_v2",
+  "scope": "EYEPACS_ONLY_PROVISIONAL_PENDING_MESSIDOR",
+  "status": "complete",
+  "methods": {
+    "B2-S": "complete",
+    "B2-P": "complete"
+  },
+  "analysis": {
+    "delta_qwk": 0.31996678128333345,
+    "benefit_harm": [
+      {
+        "Method Pair": "DRGCNN BFFN vs DRGCNN Single",
+        "Group": "All",
+        "N": 2458,
+        "Benefit count": 393,
+        "Benefit %": 15.98860862489829,
+        "Neutral count": 1569,
+        "Neutral %": 63.83238405207486,
+        "Harm count": 496,
+        "Harm %": 20.179007323026852,
+        "Mean Delta Error": -0.019121236777868186,
+        "Median Delta Error": 0.0
+      },
+      {
+        "Method Pair": "DRGCNN BFFN vs DRGCNN Single",
+        "Group": "gap=0",
+        "N": 2144,
+        "Benefit count": 302,
+        "Benefit %": 14.085820895522389,
+        "Neutral count": 1396,
+        "Neutral %": 65.11194029850746,
+        "Harm count": 446,
+        "Harm %": 20.80223880597015,
+        "Mean Delta Error": -0.049906716417910446,
+        "Median Delta Error": 0.0
+      },
+      {
+        "Method Pair": "DRGCNN BFFN vs DRGCNN Single",
+        "Group": "gap=1",
+        "N": 208,
+        "Benefit count": 73,
+        "Benefit %": 35.09615384615385,
+        "Neutral count": 107,
+        "Neutral %": 51.44230769230769,
+        "Harm count": 28,
+        "Harm %": 13.461538461538462,
+        "Mean Delta Error": 0.2980769230769231,
+        "Median Delta Error": 0.0
+      },
+      {
+        "Method Pair": "DRGCNN BFFN vs DRGCNN Single",
+        "Group": "gap>=2",
+        "N": 106,
+        "Benefit count": 18,
+        "Benefit %": 16.9811320754717,
+        "Neutral count": 66,
+        "Neutral %": 62.264150943396224,
+        "Harm count": 22,
+        "Harm %": 20.754716981132077,
+        "Mean Delta Error": -0.018867924528301886,
+        "Median Delta Error": 0.0
+      }
+    ]
+  }
+}

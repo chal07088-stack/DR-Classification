@@ -1,42 +1,27 @@
 # PHASE 1 — Data Audit
 
-## Status
+Split version: `quick20_symmetry_preserved_v2`
 
-- EyePACS Quick20: **PASSED**
-- Messidor-2 exact-ID bilateral join: **BLOCKED — missing official ADCIS pairing spreadsheet and licensed images**
-- Model training performed in this phase: **No**
+EyePACS Quick20 was generated using patient-level stratified random sampling that preserves the Symmetric (`|L-R|=0`) vs Asymmetric (`|L-R|>=1`) ratio of the complete-pair EyePACS population.
 
-## EyePACS source and fixed split
+| Split | Patients | Symmetric N | Symmetric % | Asymmetric N | Asymmetric % | Gap=1 N | Gap>=2 N |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| Full EyePACS complete-pair population | 17563 | 15323 | 87.2459 | 2240 | 12.7541 | 1485 | 755 |
+| Train | 1756 | 1532 | 87.2437 | 224 | 12.7563 | 150 | 74 |
+| Validation | 527 | 460 | 87.2865 | 67 | 12.7135 | 45 | 22 |
+| Test | 1229 | 1072 | 87.2254 | 157 | 12.7746 | 104 | 53 |
+| Combined Quick20 | 3512 | 3064 | 87.2437 | 448 | 12.7563 | 299 | 149 |
 
-The actual local `trainLabels.csv` contains 35,126 images from 17,563 patients. Every
-patient has exactly one left and one right image. The source SHA-256 is
-`1dd6600d01dd0ff1e42ce840ffa501ae32b346745ff4c4f9296e62a2e9632f88`.
+- Patient leakage: **0**
+- Image leakage: **0**
+- EyePACS hard gate: **PASS**
 
-The patient-level split was fixed with seed 42 using `(patient_max_grade, gap_bucket)`
-strata before any benchmark model result was observed.
+## Messidor-2 exact-ID audit
 
-| Split | Patients | Images | Grade 0 | Grade 1 | Grade 2 | Grade 3 | Grade 4 | Gap 0 patients | Gap 1 patients | Gap >=2 patients |
-| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| Train | 1,756 | 3,512 | 2,583 | 243 | 528 | 88 | 70 | 1,533 | 148 | 75 |
-| Validation | 527 | 1,054 | 774 | 73 | 160 | 26 | 21 | 460 | 45 | 22 |
-| Test | 1,229 | 2,458 | 1,807 | 170 | 371 | 61 | 49 | 1,072 | 104 | 53 |
+- Status: **BLOCKED**
+- Grade rows: 1748
+- Official examinations: None
+- Complete audited pairs: None
+- Reason: Official ADCIS pairing spreadsheet and licensed image archive are not present locally. No pair count was inferred or fabricated.
 
-Patient overlap is 0 and image overlap is 0. All selected patients retain complete
-left/right pairs. The test split contains 106 target eyes with gap >=2, above the
-predefined 30-target-eye QWK stability threshold.
-
-Machine-readable evidence is in `results/data_audit/eyepacs_split_summary.json` and
-`results/data_audit/eyepacs_split_audit.csv`.
-
-## Messidor-2
-
-The third-party adjudicated Kaggle file was downloaded and audited independently. It
-contains 1,748 unique image IDs, 1,744 gradable five-class DR grades, and four ungradable
-images. The gradable distribution is 1,017 / 270 / 347 / 75 / 35 for grades 0–4.
-
-The official ADCIS release states that Messidor-2 contains 874 examinations and 1,748
-images and supplies a separate pairing spreadsheet, but download requires registration.
-That official spreadsheet and the licensed images are not present locally. Consequently,
-no complete-pair count has been assumed. The Messidor stage remains blocked while the
-EyePACS benchmark may continue.
-
+No model training is permitted until both EyePACS and Messidor-2 audits pass.

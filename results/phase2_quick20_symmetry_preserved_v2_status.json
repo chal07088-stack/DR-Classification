@@ -1,0 +1,68 @@
+{
+  "phase": 2,
+  "split_version": "quick20_symmetry_preserved_v2",
+  "scope": "EYEPACS_ONLY_PROVISIONAL_PENDING_MESSIDOR",
+  "status": "complete",
+  "methods": {
+    "B0": "complete",
+    "B1-S": "complete",
+    "B1-P": "complete"
+  },
+  "analysis": {
+    "delta_qwk": 0.03176227250000041,
+    "benefit_harm": [
+      {
+        "Method Pair": "Huang PFF vs Huang Single",
+        "Group": "All",
+        "N": 2458,
+        "Benefit count": 207,
+        "Benefit %": 8.421480878763223,
+        "Neutral count": 1831,
+        "Neutral %": 74.49145646867372,
+        "Harm count": 420,
+        "Harm %": 17.08706265256306,
+        "Mean Delta Error": -0.09072416598860862,
+        "Median Delta Error": 0.0
+      },
+      {
+        "Method Pair": "Huang PFF vs Huang Single",
+        "Group": "gap=0",
+        "N": 2144,
+        "Benefit count": 153,
+        "Benefit %": 7.1361940298507465,
+        "Neutral count": 1618,
+        "Neutral %": 75.46641791044776,
+        "Harm count": 373,
+        "Harm %": 17.39738805970149,
+        "Mean Delta Error": -0.10541044776119403,
+        "Median Delta Error": 0.0
+      },
+      {
+        "Method Pair": "Huang PFF vs Huang Single",
+        "Group": "gap=1",
+        "N": 208,
+        "Benefit count": 38,
+        "Benefit %": 18.26923076923077,
+        "Neutral count": 140,
+        "Neutral %": 67.3076923076923,
+        "Harm count": 30,
+        "Harm %": 14.423076923076923,
+        "Mean Delta Error": 0.03365384615384615,
+        "Median Delta Error": 0.0
+      },
+      {
+        "Method Pair": "Huang PFF vs Huang Single",
+        "Group": "gap>=2",
+        "N": 106,
+        "Benefit count": 16,
+        "Benefit %": 15.09433962264151,
+        "Neutral count": 73,
+        "Neutral %": 68.86792452830188,
+        "Harm count": 17,
+        "Harm %": 16.037735849056602,
+        "Mean Delta Error": -0.03773584905660377,
+        "Median Delta Error": 0.0
+      }
+    ]
+  }
+}

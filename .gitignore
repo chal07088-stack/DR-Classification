@@ -23,6 +23,7 @@ experimental_results/**/*.stdout.log
 experimental_results/**/*.stderr.log
 data/eyepacs/
 data/cache/
+third_party/
 .dvc/cache/
 .dvc/tmp/
 .dvc/config.local
