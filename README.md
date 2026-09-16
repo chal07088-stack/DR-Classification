@@ -85,6 +85,36 @@ Messidor-2는 독립적인 in-domain train/validation/test 실험과 양방향 c
 
 양방향 전이 14개 평가는 [`results/transfer_pilot_metrics.json`](results/transfer_pilot_metrics.json)에 있습니다. 예: B0는 EyePACS→Messidor QWK 0.741, Messidor→EyePACS QWK 0.566입니다.
 
+## Main experiment를 위한 해석
+
+### 양안 융합 Benefit/Harm (EyePACS held-out test)
+
+양안 모델의 평가는 같은 backbone의 단안 모델과 동일한 환자·target-eye 예측을 정렬한 뒤 수행했습니다. 이는 causal effect가 아닌 error-difference 기반 기술 통계입니다.
+
+| Pair | Group | N | Benefit | Neutral | Harm | 해석 |
+|---|---|---:|---:|---:|---:|---|
+| Huang PFF vs Single | All | 2,458 | 8.42% | 74.49% | 17.09% | 전체적으로 harm이 benefit보다 많음 |
+| Huang PFF vs Single | gap=1 | 208 | 18.27% | 67.31% | 14.42% | 비대칭 경증 pair에서만 benefit이 harm보다 큼 |
+| DRGCNN BFFN vs Single | All | 2,458 | 15.99% | 63.83% | 20.18% | 전체 평균 이득 근거는 부족 |
+| DRGCNN BFFN vs Single | gap=1 | 208 | 35.10% | 51.44% | 13.46% | gap=1 subgroup에서 가장 뚜렷한 positive signal |
+
+따라서 main 실험의 우선 가설은 **좌우 등급 차이가 있는 환자, 특히 `gap=1`에서 양안 정보가 유용할 수 있다**이며, 전체 모집단 일괄 개선 주장은 이 pilot으로 지지되지 않습니다. `gap=0`에서는 두 쌍 모두 harm이 benefit보다 많았습니다. 원자료는 [`results/tables`](results/tables/)와 [`results/analysis`](results/analysis/)에 있습니다.
+
+### Domain shift와 joint training
+
+- B0는 가장 안정적인 기준선이었다: EyePACS 단독 QWK 0.684, Messidor 단독 0.810, EyePACS→Messidor 0.741, Messidor→EyePACS 0.566.
+- Messidor→EyePACS보다 EyePACS→Messidor가 B0에서 높지만, Messidor test가 260 eyes로 작고 class imbalance가 있으므로 우열 결론은 내리지 않는다.
+- Dataset-balanced joint B0는 결합 test QWK 0.750으로 가장 높았다. 그러나 결합 test는 두 dataset의 test를 합친 기술 요약이므로 dataset별 held-out 성능과 동등하게 해석하지 않는다.
+- B1-P는 두 dataset 단독 결과에서 B1-S보다 높았지만, EyePACS held-out Benefit/Harm에서는 전체 harm이 더 많았다. main 실험에서는 QWK뿐 아니라 gap-stratified benefit/harm과 dataset별 calibration을 같이 보고해야 한다.
+- B2와 B4는 이 capped budget에서 불안정/저성능이었다. B4 QWK가 EyePACS 0.012, Messidor -0.020이므로 main 비교의 강한 baseline으로 쓰기 전에 epoch budget, optimization 및 seed 반복을 재검증해야 한다.
+
+### Main experiment 권고
+
+1. 최소 3 seeds와 patient-level bootstrap CI를 추가하고, primary endpoint를 dataset별 QWK로 사전 고정한다.
+2. 양안 효과는 `gap=0`, `gap=1`, `gap>=2`를 분리 보고하며, paired-vs-single 예측 정렬을 유지한다.
+3. EyePACS와 Messidor 각각의 test split은 모델 선택·threshold fitting에 사용하지 않는다.
+4. B0/B1/B2의 dataset-balanced joint만 유지하고 B3/B4 joint는 `NOT RUN BY DESIGN`으로 명시한다.
+
 ## 비교 방법과 실행 순서
 
 | Phase | ID | Method | Status |
