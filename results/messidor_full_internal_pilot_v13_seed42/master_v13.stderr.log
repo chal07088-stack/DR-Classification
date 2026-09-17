@@ -1,0 +1,4 @@
+C:\Users\use\Desktop\DR-Classification\scripts\run_messidor_v13_all.py:126: RuntimeWarning: Mean of empty slice
+  vals=[float(r.get(f'alpha{k}','nan')) for r in g];al.append({'variant':v,'boundary':k,'mean_alpha':float(np.nanmean(vals)),'std_alpha':float(np.nanstd(vals)),'n':len(g)})
+C:\Users\use\Desktop\DR-Classification\.venv\Lib\site-packages\numpy\lib\_nanfunctions_impl.py:2019: RuntimeWarning: Degrees of freedom <= 0 for slice.
+  var = nanvar(a, axis=axis, dtype=dtype, out=out, ddof=ddof,

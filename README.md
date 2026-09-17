@@ -85,6 +85,24 @@ Messidor-2는 독립적인 in-domain train/validation/test 실험과 양방향 c
 
 양방향 전이 14개 평가는 [`results/transfer_pilot_metrics.json`](results/transfer_pilot_metrics.json)에 있습니다. 예: B0는 EyePACS→Messidor QWK 0.741, Messidor→EyePACS QWK 0.566입니다.
 
+### Messidor-2 full internal pilot v13: target-anchored boundary correction
+
+별도의 내부 pilot은 위 quick benchmark와 구분해, Messidor complete bilateral cohort의 기존 환자 단위 70/15/15 benchmark split을 그대로 사용했습니다. Outer-train 609명은 seed 42로 Expert-Train/Correction-Dev로 분리했고, Stage A의 ConvNeXt-S eye model을 동결한 후 양안 correction head만 학습했습니다. 따라서 아래의 V0--V5 비교는 같은 frozen visual expert와 같은 held-out test 260 eyes에서의 단일 실행입니다. test set은 checkpoint 선택에 사용하지 않았습니다.
+
+| Variant | Test QWK | MAE | Benefit | Harm | 핵심 해석 |
+|---|---:|---:|---:|---:|---|
+| V0 target-only | 0.800 | 0.285 | 0.00% | 0.00% | frozen eye-model reference |
+| V1 fixed α=0.5 | 0.805 | 0.296 | 3.85% | 5.38% | 고정 혼합은 harm이 benefit보다 큼 |
+| V2 gate, CE-only | **0.809** | **0.277** | 3.46% | 2.69% | 이 pilot의 최고 QWK/MAE |
+| V3 gate + safety + fallback | 0.798 | 0.288 | 1.15% | **1.15%** | 보수적이며 target-correct preservation 98.49% |
+| V4 bounded + counterfactual | 0.808 | 0.288 | 2.69% | 2.69% | 제안한 bounded boundary-wise correction |
+| V5 free residual | 0.770 | 0.312 | 3.08% | 5.77% | V4보다 낮고 harm이 큼 |
+
+- Stage A 선택 성능은 epoch 8의 validation QWK **0.879**였다.
+- `target`이 정확했던 199 eyes 중 preservation은 V2 96.98%, V3 98.49%, V4 96.48%, V5 94.97%였다. target이 틀린 61 eyes에서 recovery는 각각 11.48%, 1.64%, 6.56%, 9.84%였다.
+- **V4 vs V5:** boundary-wise bounded design은 QWK 0.808 vs 0.770, harm 2.69% vs 5.77%로 free residual보다 안정적이었다. 단, 이 단일 small test pilot에서 V2가 V4보다 QWK가 높으므로 counterfactual supervision의 보편적 우월성을 주장하지 않는다.
+- 분석/예측/figures와 integrity marker는 [`results/messidor_full_internal_pilot_v13_seed42`](results/messidor_full_internal_pilot_v13_seed42/)에 있고, 전체 기술 보고서는 [`PILOT_REPORT.md`](results/messidor_full_internal_pilot_v13_seed42/11_report/PILOT_REPORT.md)이다.
+
 ## Main experiment를 위한 해석
 
 ### 양안 융합 Benefit/Harm (EyePACS held-out test)
