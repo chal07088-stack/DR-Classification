@@ -177,6 +177,7 @@ def main():
         train_rows = train_rows[:smoke_train]
         rows = train_rows + [r for r in rows if r["run_split"] == val_name][:4]
     parent = dependency_checkpoint(repo, args.dataset, args.method, args.seed)
+    dependency_hash = sha256(parent) if parent else None
     model = build_model(repo, args.method, pretrained=True, parent_checkpoint=parent).to(device)
     optimizer = optimizer_for(model, args.method)
     scheduler = schedule_for(optimizer, args.method)
@@ -198,6 +199,19 @@ def main():
     if args.smoke:
         run_dir = repo / "outputs/smoke" / args.dataset / args.method
     run_dir.mkdir(parents=True, exist_ok=True)
+    config_path = (
+        repo
+        / {
+            "huang_single": "configs/huang/main.json",
+            "huang_pff": "configs/huang/main.json",
+            "drgcnn_single": "configs/drgcnn/main.json",
+            "drgcnn_bffn": "configs/drgcnn/main.json",
+            "d_odr": "configs/d_odr/main.json",
+            "aor_dr": "configs/aor_dr/main.json",
+        }[args.method]
+    )
+    protocol_hash = sha256(repo / "configs/common/protocol.json")
+    config_hash = sha256(config_path)
     scaler = torch.amp.GradScaler("cuda", enabled=args.method in {"d_odr", "aor_dr"})
     best = (-float("inf"), -float("inf"), -float("inf"))
     best_epoch = 0
@@ -205,20 +219,28 @@ def main():
     last_path = run_dir / "last.pt"
     if last_path.is_file() and not args.smoke:
         resume = torch.load(last_path, map_location=device, weights_only=False)
-        model.load_state_dict(resume["model_state"])
-        optimizer.load_state_dict(resume["optimizer_state"])
-        scaler.load_state_dict(resume["scaler_state"])
-        if scheduler and resume["scheduler_state"] is not None:
-            scheduler.load_state_dict(resume["scheduler_state"])
-        best = tuple(resume["best"])
-        best_epoch = int(resume["best_epoch"])
-        start_epoch = int(resume["epoch"]) + 1
-        random.setstate(resume["python_rng"])
-        np.random.set_state(resume["numpy_rng"])
-        torch.set_rng_state(resume["torch_rng"])
-        torch.cuda.set_rng_state_all(resume["cuda_rng"])
-        generator.set_state(resume["loader_rng"])
-        print(f"RESUME epoch={start_epoch} from {last_path}", flush=True)
+        if (
+            resume.get("protocol_sha256") != protocol_hash
+            or resume.get("method_config_sha256") != config_hash
+            or resume.get("dependency_checkpoint_sha256") != dependency_hash
+        ):
+            print("IGNORE stale last.pt because protocol/config checksum changed", flush=True)
+            resume = None
+        if resume is not None:
+            model.load_state_dict(resume["model_state"])
+            optimizer.load_state_dict(resume["optimizer_state"])
+            scaler.load_state_dict(resume["scaler_state"])
+            if scheduler and resume["scheduler_state"] is not None:
+                scheduler.load_state_dict(resume["scheduler_state"])
+            best = tuple(resume["best"])
+            best_epoch = int(resume["best_epoch"])
+            start_epoch = int(resume["epoch"]) + 1
+            random.setstate(resume["python_rng"])
+            np.random.set_state(resume["numpy_rng"])
+            torch.set_rng_state(resume["torch_rng"])
+            torch.cuda.set_rng_state_all(resume["cuda_rng"])
+            generator.set_state(resume["loader_rng"])
+            print(f"RESUME epoch={start_epoch} from {last_path}", flush=True)
     for epoch in range(start_epoch, epochs + 1):
         model.train()
         losses = []
@@ -296,6 +318,9 @@ def main():
                     "torch_rng": torch.get_rng_state(),
                     "cuda_rng": torch.cuda.get_rng_state_all(),
                     "loader_rng": generator.get_state(),
+                    "protocol_sha256": protocol_hash,
+                    "method_config_sha256": config_hash,
+                    "dependency_checkpoint_sha256": dependency_hash,
                 },
                 last_path,
             )
@@ -327,10 +352,16 @@ def main():
         "best_epoch": best_epoch,
         "checkpoint": str(run_dir / "best.pt"),
         "checkpoint_sha256": checksum,
+        "dependency_checkpoint_sha256": dependency_hash,
+        "protocol_sha256": protocol_hash,
+        "method_config_sha256": config_hash,
         "test_metrics": final_metrics,
     }
     atomic_json(
         repo / "outputs/status" / f"{args.dataset}_{args.method}_seed{args.seed}.done", status
+    )
+    (repo / "outputs/status" / f"{args.dataset}_{args.method}_seed{args.seed}.failed").unlink(
+        missing_ok=True
     )
     print(
         f"FINISHED {args.dataset}/{args.method}/seed{args.seed} checkpoint_sha256={checksum}",
