@@ -429,7 +429,7 @@ def bootstrap(repo, dataset, replicates=2000):
     )
 
 
-def final(repo, tables):
+def final(repo, tables, table42):
     status = list((repo / "outputs/status").glob("*.done"))
     completed = sum(1 for p in status if p.name.startswith(("eyepacs_", "messidor2_")))
     failed = [p.name for p in (repo / "outputs/status").glob("*.failed")]
@@ -447,6 +447,16 @@ def final(repo, tables):
         "data_audit": audit,
         "environment": environment,
         "table4_1": {d: t.to_dict(orient="records") for d, t in tables.items()},
+        "table4_2": {
+            d: t.where(pd.notna(t), None).to_dict(orient="records") for d, t in table42.items()
+        },
+        "artifacts": {
+            "gap_analysis": {d: f"outputs/analysis/{d}_gap_analysis.csv" for d in tables},
+            "random_fellow": {d: f"outputs/tables/{d}_true_vs_random_fellow.csv" for d in tables},
+            "bootstrap_ci": {d: f"outputs/analysis/{d}_patient_bootstrap_ci.csv" for d in tables},
+            "predictions": "outputs/predictions/<dataset>/<method>/seed<seed>_test.csv",
+            "confusions": "outputs/metrics/<dataset>/<method>/",
+        },
     }
     final_dir = repo / "outputs/final"
     final_dir.mkdir(parents=True, exist_ok=True)
@@ -513,7 +523,7 @@ def main():
     with pd.ExcelWriter(repo / "outputs/tables/table4_2_combined.xlsx") as writer:
         for d, t in t42.items():
             t.to_excel(writer, sheet_name=d, index=False)
-    final(repo, tables)
+    final(repo, tables, t42)
     print("FINISHED evaluation analysis tables report", flush=True)
 
 
