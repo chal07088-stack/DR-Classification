@@ -1,0 +1,10 @@
+dataset,split,gap_group,patient_count,percent,grade_0_eyes,grade_1_eyes,grade_2_eyes,grade_3_eyes,grade_4_eyes
+messidor2,test,gap0,132,75.86206896551724,178,24,48,8,6
+messidor2,test,gap1,35,20.114942528735632,19,30,16,5,0
+messidor2,test,gap2plus,7,4.022988505747127,5,0,7,0,2
+messidor2,train,gap0,531,76.29310344827586,716,94,194,36,22
+messidor2,train,gap1,143,20.54597701149425,77,119,63,24,3
+messidor2,train,gap2plus,22,3.160919540229885,18,3,19,2,2
+messidor2,all,gap0,663,76.20689655172414,894,118,242,44,28
+messidor2,all,gap1,178,20.45977011494253,96,149,79,29,3
+messidor2,all,gap2plus,29,3.3333333333333335,23,3,26,2,4

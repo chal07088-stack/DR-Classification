@@ -1,0 +1,4 @@
+{
+  "single": {"backbone": "CAM-EfficientNetV2-M", "pretrained": "ImageNet1K_V1", "input_size": 512, "epochs": 25, "batch_size": 16, "optimizer": "SGD", "lr": 0.0005, "momentum": 0.9, "nesterov": true, "weight_decay": 0.0005, "loss": "MSE", "scheduler": "cosine", "warmup": 0, "cam_channels_per_class": 3},
+  "bffn": {"input_size": 512, "epochs": 2, "batch_size": 64, "optimizer": "SGD", "lr": 0.02, "momentum": 0.9, "nesterov": true, "weight_decay": 0.0005, "loss": "MSE", "encoder": "frozen_same_seed_single"}
+}

@@ -116,7 +116,9 @@ class CategoryAttention(nn.Module):
         category = self.relu(self.bn(self.conv(inputs)))
         scores = nn.functional.adaptive_max_pool2d(category, 1)
         scores = scores.view(batch, 1, 1, self.classes, self.channels_per_class).mean(-1)
-        maps = category.permute(0, 2, 3, 1).reshape(
+        # Preserve the released DRGCNN CAM tensor view exactly.  The upstream
+        # implementation views BCHW storage as BHW(class,k) without permuting.
+        maps = category.reshape(
             batch, height, width, self.classes, self.channels_per_class
         ).mean(-1)
         attention = (maps * scores).mean(-1).unsqueeze(1)

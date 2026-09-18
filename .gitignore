@@ -34,6 +34,10 @@ third_party/
 /.test_tmp_*/
 /tmp/
 /output/
+/outputs/logs/
+/outputs/checkpoints/
+/outputs/status/
+/outputs/smoke/
 
 # Detached runner logs and local result bundles
 /results/*.stdout.log

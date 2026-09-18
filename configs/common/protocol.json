@@ -1,0 +1,10 @@
+{
+  "study_id": "four_paper_full_seed2026",
+  "seeds": [42, 123, 3407, 2024, 2025],
+  "datasets": ["eyepacs", "messidor2"],
+  "methods": ["huang_single", "huang_pff", "drgcnn_single", "drgcnn_bffn", "d_odr", "aor_dr"],
+  "selection": {"eyepacs": "best_val_qwk_macro_f1_mae", "messidor2": "deterministic_inner_val_best"},
+  "messidor_inner_val": {"fraction": 0.2, "seed": 2026},
+  "random_fellow": {"seed": 4242, "k": 10},
+  "bootstrap": {"seed": 2026, "replicates": 2000}
+}

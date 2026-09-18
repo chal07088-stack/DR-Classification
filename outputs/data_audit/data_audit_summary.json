@@ -1,0 +1,26 @@
+{
+  "status": "passed",
+  "authoritative_split_sha256": {
+    "eyepacs": "193473b83cf11ea62790df0200e5479f42e9df2f6aaccc695d7cc1c5e68ba92e",
+    "messidor2": "c0bc8694ed428d223bb4e407c3a9d13c273d4be6249b1eb32e3ce9ed412fa757"
+  },
+  "datasets": {
+    "eyepacs": {
+      "patients": 17563,
+      "eyes": 35126,
+      "splits": {
+        "test": 2635,
+        "train": 12293,
+        "val": 2635
+      }
+    },
+    "messidor2": {
+      "patients": 870,
+      "eyes": 1740,
+      "splits": {
+        "test": 174,
+        "train": 696
+      }
+    }
+  }
+}
