@@ -20,6 +20,9 @@ def command(*args):
 
 
 root = Path(__file__).resolve().parents[1]
+git_commit = command("git", "-C", str(root), "rev-parse", "HEAD")
+if git_commit.startswith("unavailable:") and (root / ".source_git_commit").is_file():
+    git_commit = (root / ".source_git_commit").read_text(encoding="utf-8").strip()
 value = {
     "platform": platform.platform(),
     "python": platform.python_version(),
@@ -34,7 +37,7 @@ value = {
     "nvidia_smi": command(
         "nvidia-smi", "--query-gpu=name,driver_version,memory.total", "--format=csv,noheader"
     ),
-    "git_commit": command("git", "-C", str(root), "rev-parse", "HEAD"),
+    "git_commit": git_commit,
 }
 path = root / "outputs/final/environment.json"
 path.parent.mkdir(parents=True, exist_ok=True)
