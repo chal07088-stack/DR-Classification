@@ -27,3 +27,15 @@ third_party/
 .dvc/cache/
 .dvc/tmp/
 .dvc/config.local
+
+# Local test and scratch outputs (never research artifacts)
+/.test-final/
+/.test-tmp*/
+/.test_tmp_*/
+/tmp/
+/output/
+
+# Detached runner logs and local result bundles
+/results/*.stdout.log
+/results/*.stderr.log
+/results/**/*.zip
