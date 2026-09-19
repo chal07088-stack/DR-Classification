@@ -36,6 +36,8 @@ EYE_MEAN = [0.425753653049469, 0.29737451672554016, 0.21293757855892181]
 EYE_STD = [0.27670302987098694, 0.20240527391433716, 0.1686241775751114]
 FULL_NUM_WORKERS = int(os.environ.get("DR_NUM_WORKERS", "24"))
 FULL_PREFETCH_FACTOR = int(os.environ.get("DR_PREFETCH_FACTOR", "4"))
+EVAL_NUM_WORKERS = int(os.environ.get("DR_EVAL_NUM_WORKERS", "12"))
+EVAL_PREFETCH_FACTOR = int(os.environ.get("DR_EVAL_PREFETCH_FACTOR", "2"))
 IMAGENET_MEAN = [0.485, 0.456, 0.406]
 IMAGENET_STD = [0.229, 0.224, 0.225]
 
@@ -85,10 +87,10 @@ def evaluate(repo, dataset, method, seed, model, rows, split, transform, device,
         DirectionalDataset(selected, image_root(repo, dataset), transform),
         batch_size=batch_size,
         shuffle=False,
-        num_workers=FULL_NUM_WORKERS,
+        num_workers=EVAL_NUM_WORKERS,
         pin_memory=True,
-        persistent_workers=True,
-        prefetch_factor=FULL_PREFETCH_FACTOR,
+        persistent_workers=False,
+        prefetch_factor=EVAL_PREFETCH_FACTOR,
     )
     raw, probabilities = [], []
     model.eval()
@@ -167,6 +169,7 @@ def evaluate(repo, dataset, method, seed, model, rows, split, transform, device,
 def main():
     args = parse_args()
     repo = args.repo.resolve()
+    torch.multiprocessing.set_sharing_strategy("file_system")
     seed_everything(args.seed)
     if not torch.cuda.is_available():
         raise RuntimeError("CUDA is required")
