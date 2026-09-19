@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import csv
 import json
+import os
 import random
 import time
 from pathlib import Path
@@ -33,6 +34,8 @@ from drpair.full_baselines.runtime import (
 
 EYE_MEAN = [0.425753653049469, 0.29737451672554016, 0.21293757855892181]
 EYE_STD = [0.27670302987098694, 0.20240527391433716, 0.1686241775751114]
+FULL_NUM_WORKERS = int(os.environ.get("DR_NUM_WORKERS", "24"))
+FULL_PREFETCH_FACTOR = int(os.environ.get("DR_PREFETCH_FACTOR", "4"))
 IMAGENET_MEAN = [0.485, 0.456, 0.406]
 IMAGENET_STD = [0.229, 0.224, 0.225]
 
@@ -82,8 +85,10 @@ def evaluate(repo, dataset, method, seed, model, rows, split, transform, device,
         DirectionalDataset(selected, image_root(repo, dataset), transform),
         batch_size=batch_size,
         shuffle=False,
-        num_workers=8,
+        num_workers=FULL_NUM_WORKERS,
         pin_memory=True,
+        persistent_workers=True,
+        prefetch_factor=FULL_PREFETCH_FACTOR,
     )
     raw, probabilities = [], []
     model.eval()
@@ -182,6 +187,14 @@ def main():
     optimizer = optimizer_for(model, args.method)
     scheduler = schedule_for(optimizer, args.method)
     generator = torch.Generator().manual_seed(args.seed)
+    full_loader_options = (
+        {}
+        if args.smoke
+        else {
+            "persistent_workers": True,
+            "prefetch_factor": FULL_PREFETCH_FACTOR,
+        }
+    )
     loader = DataLoader(
         DirectionalDataset(train_rows, image_root(repo, args.dataset), train_t),
         batch_size=min(batch_for(args.method), len(train_rows))
@@ -189,10 +202,17 @@ def main():
         else batch_for(args.method),
         shuffle=True,
         drop_last=not args.smoke,
-        num_workers=0 if args.smoke else 8,
+        num_workers=0 if args.smoke else FULL_NUM_WORKERS,
         pin_memory=True,
         worker_init_fn=worker_seed,
         generator=generator,
+        **full_loader_options,
+    )
+    print(
+        f"DATALOADER workers={loader.num_workers} "
+        f"prefetch={FULL_PREFETCH_FACTOR if loader.num_workers else 0} "
+        f"persistent={bool(loader.num_workers)}",
+        flush=True,
     )
     epochs = 1 if args.smoke else epochs_for(args.method)
     run_dir = repo / "outputs/checkpoints" / args.dataset / args.method / f"seed{args.seed}"
