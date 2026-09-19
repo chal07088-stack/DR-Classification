@@ -8,7 +8,7 @@ import subprocess
 import time
 from pathlib import Path
 
-SEEDS = [42, 123, 3407, 2024, 2025]
+SEEDS = [42, 123, 128]
 METHODS = ["huang_single", "huang_pff", "drgcnn_single", "drgcnn_bffn", "d_odr", "aor_dr"]
 ENV = {
     "huang_single": "huang_env",
@@ -215,7 +215,7 @@ def main():
         logs / "90_evaluation.log",
         repo,
     )
-    print("FINISHED ALL 60 RUNS + EVALUATION", flush=True)
+    print("FINISHED ALL 36 RUNS + EVALUATION", flush=True)
 
 
 if __name__ == "__main__":

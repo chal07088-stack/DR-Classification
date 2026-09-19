@@ -271,13 +271,10 @@ def infer_batch(model: nn.Module, method: str, target: torch.Tensor, fellow: tor
         prob = torch.softmax(-((score[:, None] - torch.arange(5, device=score.device)) ** 2), dim=1)
         return score, prob
     if method == "aor_dr":
-        samples = []
-        for _ in range(5):
-            boundary = model.sample(target)
-            samples.append(boundary.round().clamp(0, 1).sum(1).long())
-        classes = torch.stack(samples, 1)
-        prob = torch.stack([(classes == grade).float().mean(1) for grade in range(5)], 1)
-        return (prob * torch.arange(5, device=prob.device)).sum(1), prob
+        boundary = model.sample(target)
+        sampled_class = boundary.round().clamp(0, 1).sum(1).long()
+        prob = torch.nn.functional.one_hot(sampled_class, num_classes=5).float()
+        return sampled_class.float(), prob
     score = model(target, fellow if method in PAIRED else None)
     prob = torch.softmax(-((score[:, None] - torch.arange(5, device=score.device)) ** 2), dim=1)
     return score, prob

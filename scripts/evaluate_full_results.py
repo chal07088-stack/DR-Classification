@@ -22,7 +22,7 @@ from drpair.full_baselines.runtime import (
     rows_for_run,
 )
 
-SEEDS = [42, 123, 3407, 2024, 2025]
+SEEDS = [42, 123, 128]
 METHODS = ["huang_single", "huang_pff", "drgcnn_single", "drgcnn_bffn", "d_odr", "aor_dr"]
 PAIR = {"huang_pff": "huang_single", "drgcnn_bffn": "drgcnn_single"}
 DISPLAY = {
