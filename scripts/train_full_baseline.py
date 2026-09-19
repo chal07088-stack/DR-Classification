@@ -241,7 +241,10 @@ def main():
     start_epoch = 1
     last_path = run_dir / "last.pt"
     if last_path.is_file() and not args.smoke:
-        resume = torch.load(last_path, map_location=device, weights_only=False)
+        # Keep RNG tensors on CPU; torch.set_rng_state and DataLoader generators
+        # reject CUDA ByteTensors. Model/optimizer load_state_dict moves their
+        # tensors to the already-created CUDA parameters as needed.
+        resume = torch.load(last_path, map_location="cpu", weights_only=False)
         if (
             resume.get("protocol_sha256") != protocol_hash
             or resume.get("method_config_sha256") != config_hash
