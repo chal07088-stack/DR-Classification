@@ -117,8 +117,8 @@ def main():
         logs / "01_environment.log",
         repo,
     )
-    for dataset in ("eyepacs", "messidor2"):
-        for seed in SEEDS:
+    for seed in SEEDS:
+        for dataset in ("eyepacs", "messidor2"):
             for method in METHODS:
                 if valid_done(repo, dataset, method, seed):
                     print(f"SKIP verified {dataset}/{method}/seed{seed}", flush=True)
