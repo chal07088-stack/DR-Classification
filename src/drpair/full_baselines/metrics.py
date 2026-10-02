@@ -20,6 +20,9 @@ def classes(raw: np.ndarray) -> np.ndarray:
 
 def metric_dict(y: np.ndarray, raw: np.ndarray) -> dict[str, float]:
     pred = classes(raw)
+    _, recall, _, _ = precision_recall_fscore_support(
+        y, pred, labels=list(range(5)), zero_division=0
+    )
     return {
         "qwk": float(cohen_kappa_score(y, pred, weights="quadratic")),
         "mae": float(mean_absolute_error(y, pred)),
@@ -27,6 +30,7 @@ def metric_dict(y: np.ndarray, raw: np.ndarray) -> dict[str, float]:
         "macro_f1": float(
             f1_score(y, pred, average="macro", labels=list(range(5)), zero_division=0)
         ),
+        "balanced_accuracy": float(np.mean(recall)),
     }
 
 

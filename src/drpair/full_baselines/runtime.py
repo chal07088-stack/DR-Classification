@@ -71,7 +71,9 @@ class CropBlack:
 
 def method_transform(method: str, train: bool, mean: list[float], std: list[float]):
     size = 512 if method in HIGH_RES else 224
-    items: list[object] = [CropBlack()]
+    # Huang and DRGCNN consume the same author-style, blur/threshold-cropped
+    # 512 px cache. D-ODR instead resizes the uncropped source image.
+    items: list[object] = [] if method in HIGH_RES or method == "d_odr" else [CropBlack()]
     if train and method in HIGH_RES:
         crop = transforms.RandomResizedCrop(
             size,
@@ -99,14 +101,21 @@ def method_transform(method: str, train: bool, mean: list[float], std: list[floa
     return transforms.Compose(items)
 
 
-def load_manifest(repo: Path, dataset: str) -> list[dict[str, str]]:
+def load_manifest(repo: Path, dataset: str, include_test: bool = True) -> list[dict[str, str]]:
     name = (
         "eyepacs_directional_manifest.csv"
         if dataset == "eyepacs"
         else "messidor2_directional_manifest.csv"
     )
-    path = repo / "outputs" / "data_audit" / name
+    official = repo / "outputs" / "official_split" / "data_audit" / name
+    path = (
+        official
+        if dataset == "eyepacs" and official.is_file()
+        else repo / "outputs" / "data_audit" / name
+    )
     rows = read_rows(path)
+    if not include_test:
+        rows = [row for row in rows if row["split"] != "test"]
     if not rows:
         raise RuntimeError(f"empty directional manifest: {path}")
     return rows
@@ -129,8 +138,8 @@ def deterministic_messidor_inner(
     return copied
 
 
-def rows_for_run(repo: Path, dataset: str) -> list[dict[str, str]]:
-    rows = load_manifest(repo, dataset)
+def rows_for_run(repo: Path, dataset: str, include_test: bool = True) -> list[dict[str, str]]:
+    rows = load_manifest(repo, dataset, include_test=include_test)
     if dataset == "eyepacs":
         for row in rows:
             row["run_split"] = row["split"]
@@ -140,8 +149,17 @@ def rows_for_run(repo: Path, dataset: str) -> list[dict[str, str]]:
 
 
 class DirectionalDataset(Dataset):
-    def __init__(self, rows: list[dict[str, str]], image_root: Path, transform):
-        self.rows, self.image_root, self.transform = rows, image_root, transform
+    def __init__(
+        self,
+        rows: list[dict[str, str]],
+        image_root: Path,
+        transform,
+        load_fellow: bool = True,
+    ):
+        self.rows = rows
+        self.image_root = image_root
+        self.transform = transform
+        self.load_fellow = load_fellow
 
     def __len__(self):
         return len(self.rows)
@@ -151,13 +169,24 @@ class DirectionalDataset(Dataset):
         target = self.transform(
             Image.open(self.image_root / row["target_image_path"]).convert("RGB")
         )
-        fellow = self.transform(
-            Image.open(self.image_root / row["fellow_image_path"]).convert("RGB")
+        # Single-eye methods never consume the fellow tensor. Avoid decoding
+        # and augmenting a second high-resolution fundus image solely to throw
+        # it away; an empty collatable placeholder keeps the batch interface.
+        fellow = (
+            self.transform(
+                Image.open(self.image_root / row["fellow_image_path"]).convert("RGB")
+            )
+            if self.load_fellow
+            else torch.empty(0)
         )
         return target, fellow, torch.tensor(int(row["y_true"]), dtype=torch.long), index
 
 
-def image_root(repo: Path, dataset: str) -> Path:
+def image_root(repo: Path, dataset: str, method: str | None = None) -> Path:
+    if method in HIGH_RES:
+        # The Huang and DRGCNN author scripts use the same crop algorithm.
+        # Reuse one verified cache instead of duplicating the 512 px images.
+        return repo / "data" / "cache" / "drgcnn" / dataset
     return repo / "data" / ("eyepacs" if dataset == "eyepacs" else "messidor2/IMAGES")
 
 
@@ -219,21 +248,58 @@ def optimizer_for(model: nn.Module, method: str):
     if method in PAIRED:
         return torch.optim.SGD(parameters, lr=0.02, momentum=0.9, nesterov=True, weight_decay=5e-4)
     if method == "d_odr":
-        return torch.optim.AdamW(parameters, lr=1e-4, weight_decay=1e-4)
+        # Match Hugging Face Trainer's AdamW grouping used by the released
+        # D-ODR script: weight decay applies to ordinary weights, not biases or
+        # LayerNorm parameters.
+        from transformers.pytorch_utils import ALL_LAYERNORM_LAYERS
+        from transformers.trainer_pt_utils import get_parameter_names
+
+        decay_names = set(get_parameter_names(model, ALL_LAYERNORM_LAYERS))
+        decay_names = {name for name in decay_names if "bias" not in name}
+        grouped = [
+            {
+                "params": [
+                    parameter
+                    for name, parameter in model.named_parameters()
+                    if parameter.requires_grad and name in decay_names
+                ],
+                "weight_decay": 1e-4,
+            },
+            {
+                "params": [
+                    parameter
+                    for name, parameter in model.named_parameters()
+                    if parameter.requires_grad and name not in decay_names
+                ],
+                "weight_decay": 0.0,
+            },
+        ]
+        return torch.optim.AdamW(grouped, lr=1e-4)
     return torch.optim.AdamW(parameters, lr=1e-4)
 
 
-def schedule_for(optimizer, method: str):
+def schedule_for(optimizer, method: str, steps_per_epoch: int | None = None):
     epochs = epochs_for(method)
     if method in {"huang_single", "drgcnn_single"}:
         return torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=epochs)
+    if method == "d_odr":
+        if not steps_per_epoch or steps_per_epoch < 1:
+            raise ValueError("D-ODR linear schedule requires steps_per_epoch")
+        total_steps = epochs * steps_per_epoch
+        return torch.optim.lr_scheduler.LambdaLR(
+            optimizer,
+            lr_lambda=lambda step: max(0.0, (total_steps - step) / total_steps),
+        )
     return None
 
 
 def epochs_for(method: str) -> int:
     return {
         "huang_single": 25,
-        "huang_pff": 50,
+        # Huang et al. explicitly train the paired feature-fusion stage for
+        # 20 epochs.  The public CLI default is 50, but the paper setting is
+        # authoritative for the thesis reproduction.
+        "huang_pff": 20,
         "drgcnn_single": 25,
         "drgcnn_bffn": 2,
         "d_odr": 100,
@@ -250,6 +316,22 @@ def batch_for(method: str) -> int:
         "d_odr": 128,
         "aor_dr": 32,
     }[method]
+
+
+def physical_batch_for(method: str) -> int:
+    """Return the validated local-GPU micro-batch size.
+
+    The paper batch remains available through :func:`batch_for`.  Only the
+    DR-GCNN single-eye model needs accumulation on the 16 GB local GPU.
+    D-ODR intentionally keeps its true relational batch of 128 because its
+    k-NN/transition loss cannot be reproduced across micro-batches.
+    """
+
+    return 8 if method == "drgcnn_single" else batch_for(method)
+
+
+def accumulation_steps_for(method: str) -> int:
+    return 2 if method == "drgcnn_single" else 1
 
 
 def forward_loss(

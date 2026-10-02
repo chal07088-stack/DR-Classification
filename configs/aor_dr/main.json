@@ -1,3 +1,0 @@
-{
-  "version": "MICCAI-2025-conference", "backbone": "vit_base_patch16_224", "pretrained": "ImageNet", "fusion": "cross_attention", "input_size": 224, "epochs": 300, "batch_size": 32, "optimizer": "AdamW", "lr": 0.0001, "weight_decay": 0.01, "scheduler": "none_released_step_is_commented_out", "diffusion_steps_train": 1000, "diffusion_steps_inference": 100, "diffusion_batch_mul": 4, "stochastic_inference_repeats": 1
-}

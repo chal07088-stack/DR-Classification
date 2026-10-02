@@ -8,15 +8,14 @@ import subprocess
 import time
 from pathlib import Path
 
-SEEDS = [42, 123, 128]
-METHODS = ["huang_single", "huang_pff", "drgcnn_single", "drgcnn_bffn", "d_odr", "aor_dr"]
+SEEDS = [42]
+METHODS = ["drgcnn_single", "drgcnn_bffn", "d_odr"]
 ENV = {
     "huang_single": "huang_env",
     "huang_pff": "huang_env",
     "drgcnn_single": "drgcnn_env",
     "drgcnn_bffn": "drgcnn_env",
     "d_odr": "dodr_env",
-    "aor_dr": "aordr_env",
 }
 CONFIG = {
     "huang_single": "configs/huang/main.json",
@@ -24,9 +23,9 @@ CONFIG = {
     "drgcnn_single": "configs/drgcnn/main.json",
     "drgcnn_bffn": "configs/drgcnn/main.json",
     "d_odr": "configs/d_odr/main.json",
-    "aor_dr": "configs/aor_dr/main.json",
 }
 PARENT = {"huang_pff": "huang_single", "drgcnn_bffn": "drgcnn_single"}
+CACHE_ALGORITHM = "official_blur_threshold_square_fallback_lanczos_512"
 
 
 def checksum(path: Path) -> str:
@@ -58,6 +57,26 @@ def valid_done(repo: Path, dataset: str, method: str, seed: int) -> bool:
             )
         return valid
     except (OSError, KeyError, ValueError, json.JSONDecodeError):
+        return False
+
+
+def valid_drgcnn_cache(repo: Path, dataset: str) -> bool:
+    marker = repo / "outputs" / "data_audit" / f"drgcnn_{dataset}_cache.json"
+    manifest = repo / "outputs" / "data_audit" / f"{dataset}_directional_manifest.csv"
+    try:
+        value = json.loads(marker.read_text(encoding="utf-8"))
+        return (
+            value["status"] == "passed"
+            and value["dataset"] == dataset
+            and value["algorithm"] == CACHE_ALGORITHM
+            and value["completed"] == value["unique_manifest_images"]
+            and not value["missing_source"]
+            and not value["missing_cache"]
+            and not value["failures"]
+            and manifest.is_file()
+            and value.get("manifest_sha256") == checksum(manifest)
+        )
+    except (OSError, KeyError, TypeError, ValueError, json.JSONDecodeError):
         return False
 
 
@@ -100,23 +119,41 @@ def main():
     while not marker.is_file():
         print("WAITING data transfer marker; training has not started", flush=True)
         time.sleep(60)
-    run_logged(
-        conda_python("huang_env")
-        + [
-            str(repo / "scripts/audit_full_data.py"),
-            "--repo-root",
-            str(repo),
-            "--messidor-root",
-            str(repo / "data/messidor2/IMAGES"),
-        ],
-        logs / "00_data_audit.log",
-        repo,
-    )
-    run_logged(
-        conda_python("huang_env") + [str(repo / "scripts/record_full_environment.py")],
-        logs / "01_environment.log",
-        repo,
-    )
+    environment_done = repo / "outputs/status/environment.done"
+    if not environment_done.is_file():
+        run_logged(
+            conda_python("huang_env")
+            + [
+                str(repo / "scripts/audit_full_data.py"),
+                "--repo-root",
+                str(repo),
+                "--messidor-root",
+                str(repo / "data/messidor2/IMAGES"),
+            ],
+            logs / "00_data_audit.log",
+            repo,
+        )
+        run_logged(
+            conda_python("huang_env") + [str(repo / "scripts/record_full_environment.py")],
+            logs / "01_environment.log",
+            repo,
+        )
+    else:
+        print("SKIP verified data audit and environment record", flush=True)
+    for dataset in ("eyepacs", "messidor2"):
+        if not valid_drgcnn_cache(repo, dataset):
+            run_logged(
+                conda_python("drgcnn_env")
+                + [
+                    str(repo / "scripts/prepare_drgcnn_cache.py"),
+                    "--repo",
+                    str(repo),
+                    "--dataset",
+                    dataset,
+                ],
+                logs / f"02_drgcnn_cache_{dataset}.log",
+                repo,
+            )
     for seed in SEEDS:
         for dataset in ("eyepacs", "messidor2"):
             for method in METHODS:
@@ -209,13 +246,22 @@ def main():
                         encoding="utf-8",
                     )
                     raise error
-    run_logged(
-        conda_python("huang_env")
-        + [str(repo / "scripts/evaluate_full_results.py"), "--repo", str(repo)],
-        logs / "90_evaluation.log",
-        repo,
+    completion = repo / "outputs/status/drgcnn_dodr_seed42_all_datasets.done"
+    completion.write_text(
+        json.dumps(
+            {
+                "status": "complete",
+                "datasets": ["eyepacs", "messidor2"],
+                "methods": METHODS,
+                "seeds": SEEDS,
+                "finished_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+                "next_action": "stop_before_seed123_seed128_huang_and_final_evaluation",
+            },
+            indent=2,
+        ),
+        encoding="utf-8",
     )
-    print("FINISHED ALL 36 RUNS + EVALUATION", flush=True)
+    print("FINISHED DRGCNN + D-ODR SEED42; STOPPING BEFORE SEED123/128 AND HUANG", flush=True)
 
 
 if __name__ == "__main__":

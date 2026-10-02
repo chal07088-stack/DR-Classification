@@ -1,3 +1,3 @@
 {
-  "backbone": "vit_base_patch16_224", "pretrained": "google_vit_base_patch16_224", "input_size": 224, "epochs": 100, "batch_size": 128, "optimizer": "AdamW", "lr": 0.0001, "weight_decay": 0.0001, "loss": "MSE+D-ODR", "lambda_odr": 1.0, "kernel_k": 25, "scales": [1,2,3], "amp": "fp16", "gradient_accumulation": 1
+  "backbone": "vit_base_patch16_224", "pretrained": "google/vit-base-patch16-224/pytorch_model.bin", "input_size": 224, "preprocessing": "official_resize_no_black_border_crop", "epochs": 100, "batch_size": 128, "optimizer": "AdamW", "lr": 0.0001, "weight_decay": 0.0001, "weight_decay_exclusions": ["bias", "LayerNorm"], "scheduler": "linear_to_zero", "drop_last": false, "loss": "MSE+D-ODR", "lambda_odr": 1.0, "kernel_k": 25, "scales": [1,2,3], "amp": "fp16", "gradient_accumulation": 1
 }

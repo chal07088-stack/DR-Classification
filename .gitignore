@@ -1,4 +1,6 @@
 .venv/
+.venv-*/
+.d19deps/
 __pycache__/
 *.py[cod]
 .pytest_cache/
@@ -22,8 +24,10 @@ experimental_results/**/RUNNING.lock
 experimental_results/**/*.stdout.log
 experimental_results/**/*.stderr.log
 data/eyepacs/
+data/messidor2/
 data/cache/
 third_party/
+google/
 .dvc/cache/
 .dvc/tmp/
 .dvc/config.local
@@ -38,6 +42,20 @@ third_party/
 /outputs/checkpoints/
 /outputs/status/
 /outputs/smoke/
+/outputs/local_preparation/
+/outputs/metrics/
+/outputs/local_full_seed42/
+
+# OUR IDEA local runtime artifacts. Source code under idea_work/ours,
+# idea_work/configs and idea_work/scripts remains version controlled.
+/idea_work/results/
+/idea_work/outputs/
+
+# Local recovery bundles and office-editor temporary files
+/SERVER_BACKUP_*/
+/server_recovery_backup_*/
+/server_recovery_backup_*.tar.gz
+~$*
 
 # Detached runner logs and local result bundles
 /results/*.stdout.log

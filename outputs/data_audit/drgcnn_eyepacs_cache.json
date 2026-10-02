@@ -1,0 +1,21 @@
+{
+  "status": "passed",
+  "dataset": "eyepacs",
+  "manifest_rows": 88702,
+  "selected_manifest_rows": 46032,
+  "selected_splits": [
+    "train",
+    "val"
+  ],
+  "manifest_sha256": "d587ee164463b4f2cd945dea2ec535ba55d43e250259de318d5966a6f9968aa9",
+  "unique_manifest_images": 46032,
+  "completed": 46032,
+  "resumed_valid_cache": 10083,
+  "missing_source": [],
+  "missing_cache": [],
+  "failures": [],
+  "algorithm": "official_blur_threshold_square_fallback_lanczos_512",
+  "source_root": "C:\\Users\\use\\Desktop\\DR-Classification\\data\\eyepacs",
+  "source_overlay": null,
+  "cache_root": "C:\\Users\\use\\Desktop\\DR-Classification\\data\\cache\\drgcnn\\eyepacs"
+}

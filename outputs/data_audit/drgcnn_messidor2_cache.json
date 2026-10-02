@@ -1,0 +1,33 @@
+{
+  "status": "passed",
+  "dataset": "messidor2",
+  "manifest_rows": 1740,
+  "selected_manifest_rows": 1392,
+  "selected_splits": [
+    "train"
+  ],
+  "manifest_sha256": "6fc3bbaae91a17eab6b59c33c70b63e1b9d0317354e909da58c843853316ec19",
+  "unique_manifest_images": 1392,
+  "completed": 1392,
+  "resumed_valid_cache": 0,
+  "missing_source": [],
+  "missing_cache": [],
+  "failures": [],
+  "algorithm": "official_blur_threshold_square_fallback_lanczos_512",
+  "source_root": "C:\\Users\\use\\Desktop\\DR-Classification\\data\\messidor2\\IMAGES",
+  "source_overlay": null,
+  "cache_root": "C:\\Users\\use\\Desktop\\DR-Classification\\data\\cache\\drgcnn\\messidor2",
+  "train_rgb_stats": {
+    "mean": [
+      0.4842031770012352,
+      0.22629498034040393,
+      0.07815996238407141
+    ],
+    "std": [
+      0.29442349906111204,
+      0.1484281627880922,
+      0.06545870671021686
+    ],
+    "images": 1392
+  }
+}

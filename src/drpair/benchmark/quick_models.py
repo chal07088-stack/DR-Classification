@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import os
+
 import torch
 from torch import nn
 from torchvision.models import (
@@ -70,11 +72,6 @@ class HuangPaired(nn.Module):
             nn.ReLU(inplace=True),
             nn.Linear(256, 1, bias=False),
         )
-
-    def train(self, mode: bool = True):
-        super().train(mode)
-        self.encoder.eval()
-        return self
 
     def forward(self, target: torch.Tensor, fellow: torch.Tensor | None = None):
         if fellow is None:
@@ -181,7 +178,12 @@ class DRGCNNPaired(nn.Module):
 
     def train(self, mode: bool = True):
         super().train(mode)
-        self.encoder.eval()
+        # The released BFFN calls model.train() after freezing encoder
+        # parameters. Consequently its BatchNorm buffers update even though
+        # gradients are disabled. Keep the cleaned benchmark default, while
+        # allowing an isolated reproduction of that public-code behaviour.
+        if os.environ.get("DRGCNN_BFFN_UPDATE_BN", "0") != "1":
+            self.encoder.eval()
         return self
 
     def forward(self, target: torch.Tensor, fellow: torch.Tensor | None = None):

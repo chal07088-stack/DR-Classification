@@ -23,7 +23,7 @@ from drpair.full_baselines.runtime import (
 )
 
 SEEDS = [42, 123, 128]
-METHODS = ["huang_single", "huang_pff", "drgcnn_single", "drgcnn_bffn", "d_odr", "aor_dr"]
+METHODS = ["huang_single", "huang_pff", "drgcnn_single", "drgcnn_bffn", "d_odr"]
 PAIR = {"huang_pff": "huang_single", "drgcnn_bffn": "drgcnn_single"}
 DISPLAY = {
     "huang_single": "Huang Single",
@@ -31,7 +31,6 @@ DISPLAY = {
     "drgcnn_single": "DRGCNN Single",
     "drgcnn_bffn": "DRGCNN BFFN",
     "d_odr": "D-ODR",
-    "aor_dr": "AOR-DR",
 }
 TYPE = {
     "huang_single": "Single",
@@ -39,7 +38,6 @@ TYPE = {
     "drgcnn_single": "Single",
     "drgcnn_bffn": "Bilateral",
     "d_odr": "Single / Ordinal",
-    "aor_dr": "Single / Ordinal",
 }
 
 
@@ -257,7 +255,7 @@ def random_control(repo, dataset):
     mapping = random_map(repo, dataset)
     device = torch.device("cuda:0")
     stats = (
-        json.loads((repo / "outputs/data_audit/messidor_rgb_stats.json").read_text())
+        json.loads((repo / "outputs/data_audit/drgcnn_messidor2_rgb_stats.json").read_text())
         if dataset == "messidor2"
         else None
     )
@@ -275,6 +273,11 @@ def random_control(repo, dataset):
     output = []
     for method, single_method in PAIR.items():
         method_mean, method_std = mean, std
+        if dataset == "messidor2" and method == "drgcnn_bffn":
+            drgcnn_stats = json.loads(
+                (repo / "outputs/data_audit/drgcnn_messidor2_rgb_stats.json").read_text()
+            )
+            method_mean, method_std = drgcnn_stats["mean"], drgcnn_stats["std"]
         if dataset == "eyepacs" and method == "drgcnn_bffn":
             method_mean = [0.4844570755958557, 0.2249917984008789, 0.0770205482840538]
             method_std = [0.29392191767692566, 0.14738348126411438, 0.06418044865131378]
@@ -310,7 +313,7 @@ def random_control(repo, dataset):
                     r["fellow_image_path"] = mp.loc[r["sample_id"], "random_fellow_image_path"]
                     changed.append(r)
                 loader = DataLoader(
-                    DirectionalDataset(changed, image_root(repo, dataset), transform),
+                    DirectionalDataset(changed, image_root(repo, dataset, method), transform),
                     batch_size=64,
                     shuffle=False,
                     num_workers=8,
@@ -436,14 +439,14 @@ def final(repo, tables, table42):
     audit = json.loads((repo / "outputs/data_audit/data_audit_summary.json").read_text())
     environment = json.loads((repo / "outputs/final/environment.json").read_text())
     summary = {
-        "study": "four_paper_full_seed2026",
+        "study": "three_paper_aor_excluded_full_seed2026",
         "completed_run_markers": completed,
-        "expected_runs": 60,
+        "expected_runs": 30,
         "failed": failed,
         "seeds": SEEDS,
         "datasets": list(tables),
         "methods": METHODS,
-        "excluded": ["ours", "clip_dr", "retfound_d_odr", "diffgeo_aor", "ensemble"],
+        "excluded": ["aor_dr", "ours", "clip_dr", "retfound_d_odr", "diffgeo_aor", "ensemble"],
         "data_audit": audit,
         "environment": environment,
         "table4_1": {d: t.to_dict(orient="records") for d, t in tables.items()},
@@ -462,9 +465,9 @@ def final(repo, tables, table42):
     final_dir.mkdir(parents=True, exist_ok=True)
     (final_dir / "all_results.json").write_text(json.dumps(summary, indent=2), encoding="utf-8")
     lines = [
-        "# Four-paper full replication report",
+        "# Three-paper full replication report (AOR-DR excluded)",
         "",
-        f"Completed runs: {completed}/60",
+        f"Completed runs: {completed}/30",
         f"Failed runs: {', '.join(failed) if failed else 'none'}",
         "",
         f"GPU: {environment['gpu']}",
@@ -481,7 +484,7 @@ def final(repo, tables, table42):
         "- Huang: ResNet-50 Single and same-seed frozen-encoder PFF.",
         "- DRGCNN: CAM-EfficientNetV2-M Single and same-seed frozen-encoder BFFN.",
         "- D-ODR: single-eye ViT-B/16, physical batch 128.",
-        "- AOR-DR: MICCAI 2025 single-eye ViT-B/16 cross-attention conference configuration.",
+        "- AOR-DR was excluded before the clean rerun and is not present in the final tables.",
         "",
         "## Result artifacts",
         "",

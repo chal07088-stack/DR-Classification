@@ -1,4 +1,4 @@
 {
-  "single": {"backbone": "resnet50", "pretrained": "ImageNet1K_V1", "input_size": 512, "epochs": 25, "batch_size": 16, "optimizer": "SGD", "lr": 0.001, "momentum": 0.9, "nesterov": true, "weight_decay": 0.0005, "loss": "MSE", "scheduler": "cosine", "warmup": 0},
-  "pff": {"input_size": 512, "epochs": 50, "batch_size": 64, "optimizer": "SGD", "lr": 0.02, "momentum": 0.9, "nesterov": true, "weight_decay": 0.0005, "loss": "MSE", "encoder": "frozen_same_seed_single"}
+  "single": {"backbone": "resnet50", "pretrained": "ImageNet1K_V1", "input_size": 512, "preprocessing": "official_blur_threshold_square_fallback_lanczos_cache", "epochs": 25, "batch_size": 16, "optimizer": "SGD", "lr": 0.001, "momentum": 0.9, "nesterov": true, "weight_decay": 0.0005, "loss": "MSE", "scheduler": "cosine", "warmup": 0},
+  "pff": {"input_size": 512, "preprocessing": "official_blur_threshold_square_fallback_lanczos_cache", "epochs": 20, "batch_size": 64, "optimizer": "SGD", "lr": 0.02, "momentum": 0.9, "nesterov": true, "weight_decay": 0.0005, "loss": "MSE", "scheduler": "none", "encoder": "frozen_same_seed_single_train_mode_batchnorm", "source_priority": "paper_explicit_setting_over_public_cli_default"}
 }
