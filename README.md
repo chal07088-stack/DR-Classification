@@ -1,4 +1,30 @@
-# DR-Classification
+# Bilateral Diabetic Retinopathy Grading
+
+Research code for **boundary-wise fellow-eye correction and adaptive fusion**.
+
+Retinal images from the two eyes contain related information, but disease severity can differ between eyes. This project investigates how fellow-eye information can improve five-class diabetic retinopathy grading, and when that fusion can harm an otherwise correct prediction.
+
+## Research focus
+
+- Compare target-only classification, simple bilateral fusion, and learned correction.
+- Study boundary-wise correction, utility–strength modeling, and soft gating.
+- Evaluate overall ordinal grading performance alongside prediction-level benefit and harm.
+- Track patient-level data separation, feature generation, and experiment provenance.
+
+**Status:** Ongoing research. This repository is an experiment snapshot, not a statement that every later local experiment or result has been released. No performance ranking or clinical-use claim is made here.
+
+## Code guide
+
+- [Model implementation](idea_work/ours/) — Stage-A and bilateral correction experiments.
+- [Gate components](src/drpair/gates/) — Feature construction, networks, and fitting.
+- [Evaluation utilities](src/drpair/evaluation/) — Ordinal metrics, reporting, and statistical analysis.
+- [Experiment scripts](scripts/) — Preparation, training, and evaluation entry points.
+- [Tests](tests/) — Unit tests and implementation checks.
+- [Configurations](configs/) — Protocol and baseline settings.
+
+## Experiment snapshot and execution
+
+The instructions below describe the committed seed-42 workflow. Running it requires separately obtained datasets and local assets; no training was run to prepare this README.
 
 Reproducible diabetic-retinopathy experiments for the final seed-42 study.
 The repository contains two execution tracks:
